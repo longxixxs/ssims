@@ -1,0 +1,739 @@
+{% extends 'base.html' %}
+
+{% block title %}课程管理 - 学生信息管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作栏 -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+        <div class="mb-3 mb-md-0">
+            <h2 class="mb-1">课程管理</h2>
+            <p class="text-muted mb-0">筛选、查看与维护系统中的课程信息</p>
+        </div>
+        <a href="{% url 'course_add' %}" class="btn btn-primary px-4">
+            <i class="bi bi-plus-circle me-2"></i>添加课程
+        </a>
+    </div>
+
+    <!-- 统计卡片（仿系部管理样式） -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-journal-text"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">课程总数</div>
+                            <div class="h4 mb-0">{{ courses|length }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-calendar3"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">当前筛选学期</div>
+                            <div class="h4 mb-0">
+                                {% if request.GET.semester %}
+                                    {{ request.GET.semester }}
+                                {% else %}
+                                    全部
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-star"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">当前筛选类型</div>
+                            <div class="h4 mb-0">
+                                {% if request.GET.type == "crc" %}
+                                    公共课
+                                {% elif request.GET.type == "bcim" %}
+                                    专业基础课
+                                {% elif request.GET.type == "spc" %}
+                                    专业课
+                                {% elif request.GET.type == "ocos" %}
+                                    选修课
+                                {% else %}
+                                    全部
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索筛选卡片 -->
+    <div class="card mb-4 filter-card">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <!-- 课程名搜索 -->
+                <div class="col-md-4">
+                    <label for="cname" class="form-label fw-semibold">
+                        <i class="bi bi-search me-1"></i>课程名
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="bi bi-book"></i>
+                        </span>
+                        <input type="text"
+                               id="cname"
+                               name="cname"
+                               class="form-control border-start-0"
+                               value="{{ request.GET.cname }}"
+                               placeholder="输入课程名称关键词">
+                    </div>
+                </div>
+
+                <!-- 课程类型筛选 -->
+                <div class="col-md-3">
+                    <label for="type" class="form-label fw-semibold">
+                        <i class="bi bi-tags me-1"></i>课程类型
+                    </label>
+                    <select id="type" name="type" class="form-select">
+                        <option value="">全部类型</option>
+                        <option value="crc" {% if request.GET.type == 'crc' %}selected{% endif %}>公共课</option>
+                        <option value="bcim" {% if request.GET.type == 'bcim' %}selected{% endif %}>专业基础课</option>
+                        <option value="spc" {% if request.GET.type == 'spc' %}selected{% endif %}>专业课</option>
+                        <option value="ocos" {% if request.GET.type == 'ocos' %}selected{% endif %}>选修课</option>
+                    </select>
+                </div>
+
+                <!-- 学期筛选 -->
+                <div class="col-md-3">
+                    <label for="semester" class="form-label fw-semibold">
+                        <i class="bi bi-calendar3 me-1"></i>学期
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="bi bi-calendar"></i>
+                        </span>
+                        <input type="text"
+                               id="semester"
+                               name="semester"
+                               class="form-control border-start-0"
+                               value="{{ request.GET.semester }}"
+                               placeholder="例如：2023秋季">
+                    </div>
+                </div>
+
+                <!-- 搜索按钮 -->
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-2"></i>查询
+                    </button>
+                </div>
+            </form>
+
+            <!-- 筛选结果提示 -->
+            {% if request.GET.cname or request.GET.type or request.GET.semester %}
+            <div class="mt-4 pt-3 border-top">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <span class="text-muted">
+                            筛选结果:
+                            <span class="fw-semibold text-primary">{{ courses|length }}</span> 门课程
+                        </span>
+                    </div>
+                    <div>
+                        <a href="{% url 'course_list' %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i>清除筛选
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 课程列表表格 -->
+    <div class="card table-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">
+                                <i class="bi bi-hash me-2"></i>课程号
+                            </th>
+                            <th>
+                                <i class="bi bi-card-heading me-2"></i>课程名
+                            </th>
+                            <th>
+                                <i class="bi bi-tag me-2"></i>课程类型
+                            </th>
+                            <th>
+                                <i class="bi bi-star me-2"></i>学分
+                            </th>
+                            <th>
+                                <i class="bi bi-clock me-2"></i>学时
+                            </th>
+                            <th class="text-center">
+                                <i class="bi bi-gear me-2"></i>操作
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in courses %}
+                        <tr class="course-row">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="course-icon me-3">
+                                        <i class="bi bi-journal-text"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold text-primary">{{ c.cno }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-medium">{{ c.cname }}</div>
+                                <div class="text-muted small mt-1">
+                                    <i class="bi bi-calendar me-1"></i>{{ c.semester|default:"未设置" }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if c.type == "crc" %}
+                                <span class="badge badge-soft-primary px-3 py-2">
+                                    <i class="bi bi-globe me-1"></i>公共课
+                                </span>
+                                {% elif c.type == "bcim" %}
+                                <span class="badge badge-soft-info px-3 py-2">
+                                    <i class="bi bi-layers me-1"></i>专业基础课
+                                </span>
+                                {% elif c.type == "spc" %}
+                                <span class="badge badge-soft-success px-3 py-2">
+                                    <i class="bi bi-briefcase me-1"></i>专业课
+                                </span>
+                                {% elif c.type == "ocos" %}
+                                <span class="badge badge-soft-warning px-3 py-2">
+                                    <i class="bi bi-check2-square me-1"></i>选修课
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="credit-badge me-2">
+                                        <span class="badge bg-primary">
+                                            {{ c.credit|default:"0.0" }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <div class="fw-medium">{{ c.credit|default:"0.0" }} 学分</div>
+                                        <div class="text-muted small">学分</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-medium">{{ c.lecture|default:"-" }} 学时</div>
+                                <div class="text-muted small">学时</div>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a href="{% url 'course_students' c.cno %}"
+                                       class="btn btn-sm btn-outline-primary px-3"
+                                       title="查看选课学生">
+                                        <i class="bi bi-people me-1"></i>学生
+                                    </a>
+
+                                    <a href="{% url 'course_edit' c.cno %}"
+                                       class="btn btn-sm btn-outline-warning px-3"
+                                       title="修改课程">
+                                        <i class="bi bi-pencil-square me-1"></i>修改
+                                    </a>
+
+                                    <a href="{% url 'course_delete' c.cno %}"
+                                       class="btn btn-sm btn-outline-danger px-3 delete-btn"
+                                       title="删除课程"
+                                       data-coursename="{{ c.cname }}"
+                                       onclick="return confirmDelete(this)">
+                                        <i class="bi bi-trash me-1"></i>删除
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="empty-state">
+                                    <i class="bi bi-search display-1 text-muted mb-3"></i>
+                                    <h4 class="text-muted mb-2">
+                                        {% if request.GET.cname or request.GET.type or request.GET.semester %}
+                                        没有找到符合条件的课程
+                                        {% else %}
+                                        暂无课程数据
+                                        {% endif %}
+                                    </h4>
+                                    <p class="text-muted mb-3">
+                                        {% if request.GET.cname or request.GET.type or request.GET.semester %}
+                                        请尝试其他筛选条件
+                                        {% else %}
+                                        还没有任何课程信息，点击"添加课程"按钮创建新课程
+                                        {% endif %}
+                                    </p>
+                                    {% if request.GET.cname or request.GET.type or request.GET.semester %}
+                                    <a href="{% url 'course_list' %}" class="btn btn-outline-secondary me-2">
+                                        <i class="bi bi-x-circle me-2"></i>清除筛选
+                                    </a>
+                                    {% endif %}
+                                    <a href="{% url 'course_add' %}" class="btn btn-primary">
+                                        <i class="bi bi-plus-circle me-2"></i>添加课程
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if courses %}
+        <div class="card-footer bg-transparent border-top">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+                <div class="mb-2 mb-md-0">
+                    <span class="text-muted">显示 <strong>{{ courses|length }}</strong> 门课程</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="text-muted me-3">排序:</span>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a href="?{% if request.GET.cname %}cname={{ request.GET.cname }}&{% endif %}{% if request.GET.type %}type={{ request.GET.type }}&{% endif %}{% if request.GET.semester %}semester={{ request.GET.semester }}&{% endif %}order=cno"
+                           class="btn btn-outline-secondary {% if request.GET.order == 'cno' or not request.GET.order %}active{% endif %}">
+                            按编号
+                        </a>
+                        <a href="?{% if request.GET.cname %}cname={{ request.GET.cname }}&{% endif %}{% if request.GET.type %}type={{ request.GET.type }}&{% endif %}{% if request.GET.semester %}semester={{ request.GET.semester }}&{% endif %}order=cname"
+                           class="btn btn-outline-secondary {% if request.GET.order == 'cname' %}active{% endif %}">
+                            按名称
+                        </a>
+                        <a href="?{% if request.GET.cname %}cname={{ request.GET.cname }}&{% endif %}{% if request.GET.type %}type={{ request.GET.type }}&{% endif %}{% if request.GET.semester %}semester={{ request.GET.semester }}&{% endif %}order=credit"
+                           class="btn btn-outline-secondary {% if request.GET.order == 'credit' %}active{% endif %}">
+                            按学分
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* ========== 仿“系部管理”统一风格：卡片 + 渐变 + 阴影 ========== */
+    .stat-card,
+    .filter-card,
+    .table-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .stat-card:hover,
+    .filter-card:hover,
+    .table-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.10);
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #6366f1;
+    }
+
+    /* 表单样式 */
+    .form-label {
+        color: #334155;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-group {
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .input-group .form-control,
+    .input-group .form-select {
+        border: 2px solid #e2e8f0;
+        border-left: none;
+        font-size: 1rem;
+        padding: 0.875rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .input-group .input-group-text {
+        border: 2px solid #e2e8f0;
+        border-right: none;
+        background-color: #f8fafc;
+        color: #64748b;
+        padding: 0.875rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .input-group .form-control:focus,
+    .input-group .form-select:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        outline: none;
+    }
+
+    .input-group:focus-within .input-group-text {
+        border-color: #6366f1;
+        background-color: #f0f5ff;
+        color: #6366f1;
+    }
+
+    .form-select {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-select:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        outline: none;
+    }
+
+    /* 表格样式 */
+    .table {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.04));
+        border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+        font-weight: 600;
+        color: #334155;
+        padding: 1rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(99, 102, 241, 0.03);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    /* 课程图标 */
+    .course-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: #6366f1;
+    }
+
+    /* 徽章统一为“柔和风格” */
+    .badge {
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        border: none;
+    }
+
+    .badge-soft-primary { background: rgba(99, 102, 241, 0.12); color: #4f46e5; }
+    .badge-soft-info    { background: rgba(6, 182, 212, 0.12);  color: #0891b2; }
+    .badge-soft-success { background: rgba(34, 197, 94, 0.12);  color: #16a34a; }
+    .badge-soft-warning { background: rgba(245, 158, 11, 0.14); color: #d97706; }
+
+    /* 学分 badge 渐变 */
+    .credit-badge .badge {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+    }
+
+    /* 操作按钮 */
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-primary {
+        border: 2px solid #6366f1;
+        color: #6366f1;
+    }
+
+    .btn-outline-primary:hover {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-color: #6366f1;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-outline-danger {
+        border: 2px solid #ef4444;
+        color: #ef4444;
+    }
+
+    .btn-outline-danger:hover {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        border-color: #ef4444;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-outline-warning {
+        border: 2px solid #f59e0b;
+        color: #f59e0b;
+    }
+
+    .btn-outline-warning:hover {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        border-color: #f59e0b;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    }
+
+    /* 主按钮 */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-outline-secondary {
+        border: 2px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+        transform: translateY(-2px);
+    }
+
+    /* 空状态 */
+    .empty-state {
+        padding: 3rem 1rem;
+    }
+
+    .empty-state i {
+        opacity: 0.2;
+    }
+
+    /* 排序按钮组 */
+    .btn-group {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .btn-group .btn {
+        border-radius: 0;
+        border: 2px solid #e2e8f0;
+        margin-left: -2px;
+    }
+
+    .btn-group .btn:first-child {
+        border-radius: 8px 0 0 8px;
+    }
+
+    .btn-group .btn:last-child {
+        border-radius: 0 8px 8px 0;
+    }
+
+    .btn-group .btn.active {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-color: #6366f1;
+        color: white;
+    }
+
+    .btn-group .btn:hover:not(.active) {
+        background-color: #f8fafc;
+        border-color: #6366f1;
+        color: #6366f1;
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+        .btn-primary {
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .table td, .table th {
+            padding: 0.75rem 0.5rem;
+        }
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+        }
+        .h4 {
+            font-size: 1.5rem;
+        }
+    }
+
+    /* 动画 */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .course-row {
+        animation: fadeInUp 0.4s ease-out;
+        animation-fill-mode: both;
+    }
+
+    .course-row:nth-child(1) { animation-delay: 0.1s; }
+    .course-row:nth-child(2) { animation-delay: 0.15s; }
+    .course-row:nth-child(3) { animation-delay: 0.2s; }
+    .course-row:nth-child(4) { animation-delay: 0.25s; }
+    .course-row:nth-child(5) { animation-delay: 0.3s; }
+    .course-row:nth-child(6) { animation-delay: 0.35s; }
+    .course-row:nth-child(7) { animation-delay: 0.4s; }
+    .course-row:nth-child(8) { animation-delay: 0.45s; }
+    .course-row:nth-child(9) { animation-delay: 0.5s; }
+    .course-row:nth-child(10){ animation-delay: 0.55s; }
+</style>
+
+<script>
+    // 删除确认：必须放全局，onclick 才能调用
+    function confirmDelete(link) {
+        const courseName = link.getAttribute('data-coursename') || '该课程';
+        return confirm(`确定要删除"${courseName}"吗？此操作不可撤销！`);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // 表格行 hover
+        const tableRows = document.querySelectorAll('.course-row');
+        tableRows.forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+                this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.08)';
+            });
+            row.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+
+        // 输入框组聚焦
+        document.querySelectorAll('.input-group').forEach(group => {
+            group.addEventListener('focusin', function() {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.1)';
+            });
+            group.addEventListener('focusout', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+
+        // 自动提交
+        const searchInputs = document.querySelectorAll('#cname, #type, #semester');
+        let searchTimeout;
+        searchInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.form.submit();
+                }, 500);
+            });
+        });
+
+        // 按钮点击反馈
+        document.querySelectorAll('.btn').forEach(button => {
+            button.addEventListener('mousedown', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            button.addEventListener('mouseup', function() {
+                this.style.transform = '';
+            });
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+            });
+        });
+
+        // 排序按钮 loading
+        document.querySelectorAll('.btn-group .btn').forEach(button => {
+            button.addEventListener('click', function() {
+                if (this.getAttribute('href') !== '#') {
+                    this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>排序中...';
+                }
+            });
+        });
+
+        // 页面加载动画
+        const pageContent = document.querySelector('.container-fluid');
+        pageContent.style.opacity = '0';
+        pageContent.style.transform = 'translateY(10px)';
+
+        setTimeout(() => {
+            pageContent.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            pageContent.style.opacity = '1';
+            pageContent.style.transform = 'translateY(0)';
+        }, 100);
+    });
+</script>
+{% endblock %}

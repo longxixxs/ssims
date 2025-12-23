@@ -1,0 +1,716 @@
+{% extends 'base.html' %}
+
+{% block title %}系统仪表盘 - 学生信息管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 欢迎区域 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h3 class="mb-2">欢迎回来，{{ user.first_name }}！</h3>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-calendar-check me-1"></i>
+                        {% now "Y年m月d日" %}
+                    </p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="system-status">
+                        <span class="badge bg-success px-3 py-2">
+                            <i class="bi bi-check-circle me-1"></i>
+                            系统运行正常
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 关键指标卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary me-3">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">学生总数</div>
+                            <h2 class="mb-0">{{ student_total }}</h2>
+                            <div class="text-success small mt-1">
+                                <i class="bi bi-arrow-up me-1"></i>数据统计中...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 pt-0">
+                    <a href="/students/" class="small text-primary text-decoration-none">
+                        查看详情 <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success me-3">
+                            <i class="bi bi-journal-text"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">课程总数</div>
+                            <h2 class="mb-0">{{ course_total }}</h2>
+                            <div class="text-success small mt-1">
+                                <i class="bi bi-arrow-up me-1"></i>数据统计中...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 pt-0">
+                    <a href="/courses/" class="small text-success text-decoration-none">
+                        查看详情 <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-info bg-opacity-10 text-info me-3">
+                            <i class="bi bi-diagram-3"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">班级数量</div>
+                            <h2 class="mb-0">{{ class_total }}</h2>
+                            <div class="text-success small mt-1">
+                                <i class="bi bi-check-circle me-1"></i>数据统计中...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 pt-0">
+                    <a href="/classes/" class="small text-info text-decoration-none">
+                        查看详情 <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning bg-opacity-10 text-warning me-3">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">系部数量</div>
+                            <h2 class="mb-0">{{ depart_total }}</h2>
+                            <div class="text-secondary small mt-1">
+                                <i class="bi bi-dash me-1"></i>数据统计中...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 pt-0">
+                    <a href="/departs/" class="small text-warning text-decoration-none">
+                        查看详情 <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 最近选课记录 -->
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history me-2 text-primary"></i>
+                            最近选课记录
+                        </h5>
+                        <p class="text-muted mb-0 mt-1">最新选课记录</p>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th width="15%">
+                                        <i class="bi bi-person-badge me-1"></i>学号
+                                    </th>
+                                    <th width="25%">
+                                        <i class="bi bi-person-circle me-1"></i>学生姓名
+                                    </th>
+                                    <th width="35%">
+                                        <i class="bi bi-journal-text me-1"></i>课程名称
+                                    </th>
+                                    <th width="25%" class="text-center">
+                                        <i class="bi bi-award me-1"></i>成绩
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in recent_sc %}
+                                <tr class="record-row">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="student-icon-small me-2">
+                                                <i class="bi bi-person text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <strong class="text-primary">{{ r.sno.sno }}</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">{{ r.sno.sname }}</div>
+                                        <div class="text-muted small">
+                                            {{ r.sno.classno.classname|default:"-" }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-medium">{{ r.cno.cname }}</div>
+                                        <div class="text-muted small">
+                                            <i class="bi bi-tag me-1"></i>{{ r.cno.get_type_display|default:"-" }}
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if r.grade %}
+                                            {% if r.grade >= 90 %}
+                                            <span class="badge bg-success grade-badge-sm">
+                                                <i class="bi bi-trophy me-1"></i>{{ r.grade }}
+                                            </span>
+                                            {% elif r.grade >= 80 %}
+                                            <span class="badge bg-primary grade-badge-sm">
+                                                <i class="bi bi-emoji-smile me-1"></i>{{ r.grade }}
+                                            </span>
+                                            {% elif r.grade >= 60 %}
+                                            <span class="badge bg-info grade-badge-sm">
+                                                <i class="bi bi-emoji-neutral me-1"></i>{{ r.grade }}
+                                            </span>
+                                            {% else %}
+                                            <span class="badge bg-danger grade-badge-sm">
+                                                <i class="bi bi-emoji-frown me-1"></i>{{ r.grade }}
+                                            </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary">
+                                                <i class="bi bi-clock me-1"></i>未录入
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-5">
+                                        <div class="empty-state-sm">
+                                            <i class="bi bi-inbox display-1 text-muted"></i>
+                                            <h5 class="mt-3 text-muted">暂无选课记录</h5>
+                                            <p class="text-muted mb-0">还没有学生选课记录</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-transparent border-top">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted">
+                                显示 <strong>{{ recent_sc|length }}</strong> 条记录
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统概览 -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-speedometer2 me-2 text-primary"></i>
+                        系统概览
+                    </h5>
+                </div>
+
+                <div class="card-body">
+                    <div class="system-overview">
+                        <!-- 快速访问 -->
+                        <div class="overview-item mb-4">
+                            <h6 class="text-muted mb-3">
+                                <i class="bi bi-link-45deg me-2"></i>快速访问
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <a href="/students/add/" class="quick-action-card">
+                                        <div class="action-icon bg-primary bg-opacity-10 text-primary mb-2">
+                                            <i class="bi bi-person-plus"></i>
+                                        </div>
+                                        <div class="action-text">
+                                            <div class="fw-medium">添加学生</div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="/courses/add/" class="quick-action-card">
+                                        <div class="action-icon bg-success bg-opacity-10 text-success mb-2">
+                                            <i class="bi bi-journal-plus"></i>
+                                        </div>
+                                        <div class="action-text">
+                                            <div class="fw-medium">添加课程</div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="/classes/add/" class="quick-action-card">
+                                        <div class="action-icon bg-info bg-opacity-10 text-info mb-2">
+                                            <i class="bi bi-diagram-3"></i>
+                                        </div>
+                                        <div class="action-text">
+                                            <div class="fw-medium">添加班级</div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="/departs/add/" class="quick-action-card">
+                                        <div class="action-icon bg-warning bg-opacity-10 text-warning mb-2">
+                                            <i class="bi bi-building-add"></i>
+                                        </div>
+                                        <div class="action-text">
+                                            <div class="fw-medium">添加系部</div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 今日提醒 -->
+                        <div class="overview-item">
+                            <h6 class="text-muted mb-3">
+                                <i class="bi bi-bell me-2"></i>系统提醒
+                            </h6>
+                            <div class="reminders">
+                                <div class="reminder-item">
+                                    <div class="reminder-icon text-info">
+                                        <i class="bi bi-calendar-check"></i>
+                                    </div>
+                                    <div class="reminder-content">
+                                        <div class="reminder-title">今日统计</div>
+                                        <div class="reminder-text">系统中共有 {{ student_total }} 名学生</div>
+                                    </div>
+                                </div>
+                                <div class="reminder-item">
+                                    <div class="reminder-icon text-success">
+                                        <i class="bi bi-check-circle"></i>
+                                    </div>
+                                    <div class="reminder-content">
+                                        <div class="reminder-title">系统健康</div>
+                                        <div class="reminder-text">所有服务运行正常</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-transparent border-top">
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            学生信息管理系统
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 统计卡片 */
+    .stat-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    /* 表格样式 */
+    .table {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.04));
+        border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+        font-weight: 600;
+        color: #334155;
+        padding: 1rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(99, 102, 241, 0.03);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    /* 学生图标 */
+    .student-icon-small {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    /* 成绩徽章 */
+    .grade-badge-sm {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        min-width: 70px;
+        display: inline-block;
+    }
+
+    /* 空状态 */
+    .empty-state-sm {
+        padding: 2rem 1rem;
+    }
+
+    .empty-state-sm i {
+        opacity: 0.2;
+    }
+
+    /* 快速操作卡片 */
+    .quick-action-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.25rem 0.75rem;
+        background-color: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        text-decoration: none;
+        color: #475569;
+        transition: all 0.3s ease;
+        height: 100%;
+        text-align: center;
+    }
+
+    .quick-action-card:hover {
+        background-color: #f1f5f9;
+        border-color: #6366f1;
+        color: #6366f1;
+        transform: translateY(-3px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .action-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .action-text {
+        font-size: 0.9rem;
+    }
+
+    /* 提醒项 */
+    .reminders {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .reminder-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .reminder-item:hover {
+        background-color: #f1f5f9;
+        transform: translateX(5px);
+    }
+
+    .reminder-icon {
+        font-size: 1.2rem;
+        margin-right: 12px;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .reminder-content {
+        flex: 1;
+    }
+
+    .reminder-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 2px;
+    }
+
+    .reminder-text {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    /* 系统状态徽章 */
+    .system-status .badge {
+        font-size: 0.95rem;
+        border-radius: 20px;
+    }
+
+    /* 按钮样式 */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-outline-primary {
+        border: 2px solid #6366f1;
+        color: #6366f1;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #6366f1;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-outline-secondary {
+        border: 2px solid #e2e8f0;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #f8f9fa;
+        border-color: #cbd5e1;
+        color: #475569;
+        transform: translateY(-2px);
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .card-header .d-flex {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .card-header .dropdown {
+            margin-top: 1rem;
+            align-self: flex-end;
+        }
+
+        .table td, .table th {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .quick-action-card {
+            padding: 1rem 0.5rem;
+        }
+
+        .action-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.3rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+        }
+    }
+
+    /* 动画效果 */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .record-row {
+        animation: fadeInUp 0.4s ease-out;
+        animation-fill-mode: both;
+    }
+
+    .record-row:nth-child(1) { animation-delay: 0.1s; }
+    .record-row:nth-child(2) { animation-delay: 0.15s; }
+    .record-row:nth-child(3) { animation-delay: 0.2s; }
+    .record-row:nth-child(4) { animation-delay: 0.25s; }
+    .record-row:nth-child(5) { animation-delay: 0.3s; }
+    .record-row:nth-child(6) { animation-delay: 0.35s; }
+    .record-row:nth-child(7) { animation-delay: 0.4s; }
+    .record-row:nth-child(8) { animation-delay: 0.45s; }
+    .record-row:nth-child(9) { animation-delay: 0.5s; }
+    .record-row:nth-child(10) { animation-delay: 0.55s; }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 表格行悬停效果
+        const tableRows = document.querySelectorAll('.record-row');
+        tableRows.forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+                this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.08)';
+            });
+
+            row.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+
+        // 统计卡片动画
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+        });
+
+        // 快速操作卡片悬停效果
+        const quickActionCards = document.querySelectorAll('.quick-action-card');
+        quickActionCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px)';
+                this.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.1)';
+            });
+
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+
+        // 提醒项悬停效果
+        const reminderItems = document.querySelectorAll('.reminder-item');
+        reminderItems.forEach(item => {
+            item.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateX(8px)';
+            });
+
+            item.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+            });
+        });
+
+        // 页面加载动画
+        const pageContent = document.querySelector('.container-fluid');
+        pageContent.style.opacity = '0';
+        pageContent.style.transform = 'translateY(10px)';
+
+        setTimeout(() => {
+            pageContent.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            pageContent.style.opacity = '1';
+            pageContent.style.transform = 'translateY(0)';
+        }, 100);
+
+        // 系统状态徽章动画
+        const systemStatusBadge = document.querySelector('.system-status .badge');
+        if (systemStatusBadge) {
+            setInterval(() => {
+                systemStatusBadge.classList.toggle('bg-success');
+                systemStatusBadge.classList.toggle('bg-primary');
+
+                setTimeout(() => {
+                    systemStatusBadge.classList.toggle('bg-success');
+                    systemStatusBadge.classList.toggle('bg-primary');
+                }, 500);
+            }, 3000);
+        }
+    });
+</script>
+{% endblock %}

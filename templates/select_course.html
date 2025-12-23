@@ -1,0 +1,674 @@
+{% extends 'base.html' %}
+
+{% block title %}学生选课 - 学生信息管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <!-- 页面标题 -->
+            <div class="d-flex align-items-center mb-4">
+                <div class="icon-container me-3">
+                    <i class="bi bi-journal-plus"></i>
+                </div>
+                <div>
+                    <h2 class="mb-1">学生选课</h2>
+                    <p class="text-muted mb-0">为学生选择课程，完善学习计划</p>
+                </div>
+            </div>
+
+            <!-- 学生信息卡片 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center mb-3 mb-md-0">
+                            <div class="student-avatar">
+                                {% if stu.sex == 'boy' %}
+                                    <i class="bi bi-person-circle"></i>
+                                {% else %}
+                                    <i class="bi bi-person-circle"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="info-item">
+                                        <div class="text-muted small mb-1">学生姓名</div>
+                                        <div class="fw-semibold">{{ stu.sname }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="info-item">
+                                        <div class="text-muted small mb-1">学号</div>
+                                        <div class="fw-semibold text-primary">{{ stu.sno }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 mt-3">
+                                    <div class="info-item">
+                                        <div class="text-muted small mb-1">所属班级</div>
+                                        <div class="fw-semibold">{{ stu.classno.classname }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 mt-3">
+                                    <div class="info-item">
+                                        <div class="text-muted small mb-1">已选课程</div>
+                                        <div class="fw-semibold text-primary">
+                                            {{ stu.sc_set.count|default:"0" }} 门
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 课程选择表单卡片 -->
+            <div class="card">
+                <div class="card-body p-4">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- 课程选择 -->
+                        <div class="mb-4">
+                            <label for="cno" class="form-label fw-semibold">
+                                <i class="bi bi-journal-text me-1"></i>选择课程
+                                <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-book"></i>
+                                </span>
+                                <select id="cno" 
+                                        name="cno" 
+                                        class="form-select border-start-0" 
+                                        required>
+                                    <option value="">请选择课程</option>
+                                    {% for c in courses %}
+                                    <option value="{{ c.cno }}">
+                                        {{ c.cname }} ({{ c.cno }}) - {{ c.get_type_display }} - {{ c.credit|default:"0.0" }}学分
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-text text-muted ms-1">
+                                请从下拉列表中选择要添加的课程
+                            </div>
+                        </div>
+
+                        <!-- 课程预览 -->
+                        <div class="course-preview mb-4" id="coursePreview" style="display: none;">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-2 text-center">
+                                            <div class="course-icon">
+                                                <i class="bi bi-journal-text"></i>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-10">
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <div class="preview-item">
+                                                        <div class="text-muted small mb-1">课程名称</div>
+                                                        <div class="fw-semibold" id="preview-cname">-</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="preview-item">
+                                                        <div class="text-muted small mb-1">课程类型</div>
+                                                        <div class="fw-semibold" id="preview-type">-</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 mt-3">
+                                                    <div class="preview-item">
+                                                        <div class="text-muted small mb-1">学分</div>
+                                                        <div class="fw-semibold text-primary" id="preview-credit">-</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 mt-3">
+                                                    <div class="preview-item">
+                                                        <div class="text-muted small mb-1">学时</div>
+                                                        <div class="fw-semibold" id="preview-lecture">-</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 表单按钮 -->
+                        <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top">
+                            <a href="/sc/{{ stu.sno }}/" class="btn btn-outline-secondary px-4">
+                                <i class="bi bi-arrow-left me-2"></i>返回选课记录
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4" id="submit-btn">
+                                <i class="bi bi-check-circle me-2"></i>
+                                确认选课
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 可选课程列表 -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-list-ul me-2"></i>可选课程列表
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th width="15%">
+                                        <i class="bi bi-hash me-1"></i>课程号
+                                    </th>
+                                    <th width="35%">
+                                        <i class="bi bi-card-heading me-1"></i>课程名称
+                                    </th>
+                                    <th width="25%">
+                                        <i class="bi bi-tag me-1"></i>课程类型
+                                    </th>
+                                    <th width="25%" class="text-end">
+                                        <i class="bi bi-star me-1"></i>学分
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in courses %}
+                                <tr class="course-item" data-cno="{{ c.cno }}">
+                                    <td>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary">
+                                            {{ c.cno }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-medium">{{ c.cname }}</div>
+                                        <div class="text-muted small">
+                                            <i class="bi bi-clock me-1"></i>{{ c.lecture|default:"-" }}学时
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if c.type == "crc" %}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1">
+                                            公共课
+                                        </span>
+                                        {% elif c.type == "bcim" %}
+                                        <span class="badge bg-info bg-opacity-10 text-info px-3 py-1">
+                                            专业基础课
+                                        </span>
+                                        {% elif c.type == "spc" %}
+                                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-1">
+                                            专业课
+                                        </span>
+                                        {% elif c.type == "ocos" %}
+                                        <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-1">
+                                            选修课
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="fw-semibold">{{ c.credit|default:"0.0" }}</span> 学分
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4">
+                                        <div class="empty-state-sm">
+                                            <i class="bi bi-journal-x display-6 text-muted"></i>
+                                            <h6 class="mt-2 text-muted">暂无可选课程</h6>
+                                            <p class="text-muted mb-0">所有课程已被选完或课程表为空</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 图标容器 */
+    .icon-container {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.8rem;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        transition: var(--transition);
+    }
+
+    .icon-container:hover {
+        transform: rotate(-5deg) scale(1.05);
+    }
+
+    /* 学生头像 */
+    .student-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2.5rem;
+        margin: 0 auto;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+    }
+
+    /* 信息项 */
+    .info-item {
+        padding: 0.75rem;
+        border-radius: 10px;
+        background-color: #f8fafc;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .info-item:hover {
+        background-color: #f1f5f9;
+        transform: translateY(-2px);
+    }
+
+    /* 课程图标 */
+    .course-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        color: #6366f1;
+        margin: 0 auto;
+    }
+
+    /* 预览项 */
+    .preview-item {
+        padding: 0.5rem 0;
+    }
+
+    /* 课程项 */
+    .course-item {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .course-item:hover {
+        background-color: rgba(99, 102, 241, 0.03);
+        transform: translateX(5px);
+    }
+
+    .course-item.active {
+        background-color: rgba(99, 102, 241, 0.08);
+        border-left: 3px solid #6366f1;
+    }
+
+    /* 表单标签 */
+    .form-label {
+        color: #334155;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-label .text-danger {
+        color: #ef4444;
+        margin-left: 0.25rem;
+    }
+
+    /* 输入框样式 */
+    .input-group-lg {
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .input-group-lg .form-select {
+        padding: 0.875rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-left: none;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 16px 12px;
+        appearance: none;
+    }
+
+    .input-group-lg .input-group-text {
+        border: 2px solid #e2e8f0;
+        border-right: none;
+        background-color: #f8fafc;
+        color: #64748b;
+        padding: 0.875rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .input-group-lg .form-select:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        outline: none;
+    }
+
+    .input-group-lg:focus-within {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .input-group-lg:focus-within .input-group-text {
+        border-color: #6366f1;
+        background-color: #f0f5ff;
+        color: #6366f1;
+    }
+
+    /* 表单文本提示 */
+    .form-text {
+        font-size: 0.875rem;
+        margin-top: 0.375rem;
+    }
+
+    /* 空状态 */
+    .empty-state-sm {
+        padding: 1.5rem 1rem;
+    }
+
+    .empty-state-sm i {
+        opacity: 0.3;
+    }
+
+    /* 表格样式 */
+    .table {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.04));
+        border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+        font-weight: 600;
+        color: #334155;
+        padding: 1rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+
+    /* 按钮样式 */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-secondary {
+        border: 2px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .icon-container {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+        }
+
+        .student-avatar {
+            width: 60px;
+            height: 60px;
+            font-size: 1.8rem;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+        }
+
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .d-flex.justify-content-between .btn {
+            width: 100%;
+        }
+        
+        .table td, .table th {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .course-icon {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+        }
+    }
+
+    /* 验证样式 */
+    .was-validated .form-select:invalid {
+        border-color: #ef4444;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23ef4444'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23ef4444' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+
+    .was-validated .form-select:valid {
+        border-color: #10b981;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2310b981' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+
+    /* 动画效果 */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .card {
+        animation: fadeInUp 0.5s ease-out;
+        animation-fill-mode: both;
+    }
+
+    .card:nth-child(2) {
+        animation-delay: 0.1s;
+    }
+
+    .card:nth-child(3) {
+        animation-delay: 0.2s;
+    }
+
+    .card:nth-child(4) {
+        animation-delay: 0.3s;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const courseSelect = document.getElementById('cno');
+        const coursePreview = document.getElementById('coursePreview');
+        const courseItems = document.querySelectorAll('.course-item');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        // 课程数据映射
+        const courseData = {};
+        {% for c in courses %}
+        courseData['{{ c.cno }}'] = {
+            cname: '{{ c.cname }}',
+            type: '{{ c.get_type_display }}',
+            credit: '{{ c.credit|default:"0.0" }}',
+            lecture: '{{ c.lecture|default:"-" }}'
+        };
+        {% endfor %}
+        
+        // 更新课程预览
+        function updateCoursePreview(courseNo) {
+            const data = courseData[courseNo];
+            if (data) {
+                document.getElementById('preview-cname').textContent = data.cname;
+                document.getElementById('preview-type').textContent = data.type;
+                document.getElementById('preview-credit').textContent = data.credit + ' 学分';
+                document.getElementById('preview-lecture').textContent = data.lecture + ' 学时';
+                
+                coursePreview.style.display = 'block';
+                coursePreview.style.animation = 'fadeInUp 0.3s ease-out';
+            } else {
+                coursePreview.style.display = 'none';
+            }
+        }
+        
+        // 监听选择框变化
+        courseSelect.addEventListener('change', function() {
+            const selectedCourse = this.value;
+            if (selectedCourse) {
+                updateCoursePreview(selectedCourse);
+                
+                // 高亮对应的表格行
+                courseItems.forEach(item => {
+                    if (item.getAttribute('data-cno') === selectedCourse) {
+                        item.classList.add('active');
+                        item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            } else {
+                coursePreview.style.display = 'none';
+                courseItems.forEach(item => item.classList.remove('active'));
+            }
+        });
+        
+        // 表格行点击事件
+        courseItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const courseNo = this.getAttribute('data-cno');
+                courseSelect.value = courseNo;
+                
+                // 触发change事件
+                const event = new Event('change');
+                courseSelect.dispatchEvent(event);
+                
+                // 添加点击效果
+                this.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+        });
+        
+        // 表单验证
+        const form = document.querySelector('.needs-validation');
+        
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                // 显示加载状态
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>选课中...';
+                submitBtn.disabled = true;
+            }
+            form.classList.add('was-validated');
+        }, false);
+        
+        // 输入框动画效果
+        courseSelect.addEventListener('focus', function() {
+            this.parentElement.style.transform = 'translateY(-3px)';
+            this.parentElement.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.12)';
+        });
+
+        courseSelect.addEventListener('blur', function() {
+            this.parentElement.style.transform = '';
+            this.parentElement.style.boxShadow = '';
+        });
+        
+        // 页面加载动画
+        const pageContent = document.querySelector('.container-fluid');
+        pageContent.style.opacity = '0';
+        pageContent.style.transform = 'translateY(10px)';
+
+        setTimeout(() => {
+            pageContent.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            pageContent.style.opacity = '1';
+            pageContent.style.transform = 'translateY(0)';
+        }, 100);
+        
+        // 信息项悬停效果
+        document.querySelectorAll('.info-item').forEach(item => {
+            item.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+                this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+            });
+
+            item.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+        
+        // 自动选择第一个课程
+        if (courseSelect.options.length > 1) {
+            courseSelect.selectedIndex = 1;
+            const event = new Event('change');
+            courseSelect.dispatchEvent(event);
+        }
+    });
+</script>
+{% endblock %}

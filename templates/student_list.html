@@ -1,0 +1,1029 @@
+{% extends 'base.html' %}
+
+{% block title %}学生管理 - 学生信息管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作栏 -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+        <div class="mb-3 mb-md-0">
+            <div class="d-flex align-items-center">
+                <div class="icon-container me-3">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div>
+                    <h2 class="mb-1">学生管理</h2>
+                    <p class="text-muted mb-0">管理系统中的所有学生信息</p>
+                </div>
+            </div>
+        </div>
+        <a href="{% url 'student_add' %}" class="btn btn-primary px-4">
+            <i class="bi bi-plus-circle me-2"></i>添加学生
+        </a>
+    </div>
+
+    <!-- 搜索筛选卡片 -->
+    <div class="card mb-4">
+        <div class="card-body p-4">
+            <h5 class="card-title mb-3">
+                <i class="bi bi-search me-2 text-primary"></i>学生查询与筛选
+            </h5>
+            <form method="get" class="needs-validation" id="searchForm" novalidate>
+                <div class="row g-4">
+                    <!-- 学号筛选 -->
+                    <div class="col-md-6 col-lg-3">
+                        <label for="sno" class="form-label fw-semibold">
+                            <i class="bi bi-hash me-1"></i>学号
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="bi bi-person-badge"></i>
+                            </span>
+                            <input type="text" 
+                                   id="sno" 
+                                   name="sno" 
+                                   class="form-control border-start-0" 
+                                   value="{{ request.GET.sno }}"
+                                   placeholder="请输入学号">
+                        </div>
+                    </div>
+
+                    <!-- 姓名筛选 -->
+                    <div class="col-md-6 col-lg-3">
+                        <label for="sname" class="form-label fw-semibold">
+                            <i class="bi bi-person me-1"></i>姓名
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="bi bi-card-heading"></i>
+                            </span>
+                            <input type="text" 
+                                   id="sname" 
+                                   name="sname" 
+                                   class="form-control border-start-0" 
+                                   value="{{ request.GET.sname }}"
+                                   placeholder="请输入姓名">
+                        </div>
+                    </div>
+
+                    <!-- 性别筛选 -->
+                    <div class="col-md-6 col-lg-3">
+                        <label for="sex" class="form-label fw-semibold">
+                            <i class="bi bi-gender-ambiguous me-1"></i>性别
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="bi bi-gender-male"></i>
+                            </span>
+                            <select id="sex" 
+                                    name="sex" 
+                                    class="form-select border-start-0">
+                                <option value="">全部性别</option>
+                                <option value="boy" {% if request.GET.sex == 'boy' %}selected{% endif %}>男</option>
+                                <option value="girl" {% if request.GET.sex == 'girl' %}selected{% endif %}>女</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 班级筛选 -->
+                    <div class="col-md-6 col-lg-3">
+                        <label for="classno" class="form-label fw-semibold">
+                            <i class="bi bi-people me-1"></i>班级
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="bi bi-diagram-3"></i>
+                            </span>
+                            <select id="classno" 
+                                    name="classno" 
+                                    class="form-select border-start-0">
+                                <option value="">全部班级</option>
+                                {% for c in classes %}
+                                <option value="{{ c.classno }}" 
+                                        {% if request.GET.classno == c.classno %}selected{% endif %}>
+                                    {{ c.classname }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 排序选项 -->
+                   <!-- 排序方式 -->
+<div class="col-md-12">
+    <div class="d-flex align-items-center flex-wrap gap-3">
+        <label class="form-label fw-semibold me-2">
+            <i class="bi bi-sort-down me-1"></i>排序方式
+        </label>
+
+        <!-- 排序字段 -->
+        <div class="btn-group" role="group">
+            <input type="radio" class="btn-check" name="order" id="order-sno"
+                   value="sno" {% if order == 'sno' %}checked{% endif %}>
+            <label class="btn btn-outline-primary" for="order-sno">学号</label>
+
+            <input type="radio" class="btn-check" name="order" id="order-sname"
+                   value="sname" {% if order == 'sname' %}checked{% endif %}>
+            <label class="btn btn-outline-primary" for="order-sname">姓名</label>
+
+            <input type="radio" class="btn-check" name="order" id="order-age"
+                   value="age" {% if order == 'age' %}checked{% endif %}>
+            <label class="btn btn-outline-primary" for="order-age">年龄</label>
+        </div>
+
+        <!-- 升 / 降序 -->
+        <div class="btn-group" role="group">
+            <input type="radio" class="btn-check" name="direction" id="dir-asc"
+                   value="asc" {% if direction == 'asc' %}checked{% endif %}>
+            <label class="btn btn-outline-secondary" for="dir-asc">
+                <i class="bi bi-sort-up"></i> 升序
+            </label>
+
+            <input type="radio" class="btn-check" name="direction" id="dir-desc"
+                   value="desc" {% if direction == 'desc' %}checked{% endif %}>
+            <label class="btn btn-outline-secondary" for="dir-desc">
+                <i class="bi bi-sort-down"></i> 降序
+            </label>
+        </div>
+    </div>
+</div>
+
+                    <!-- 操作按钮 -->
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                            <a href="{% url 'student_list' %}" class="btn btn-outline-secondary px-4">
+                                <i class="bi bi-arrow-clockwise me-2"></i>重置
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4" id="searchBtn">
+                                <i class="bi bi-search me-2"></i>查询
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">学生总数</div>
+                            <div class="h4 mb-0">{{ students|length }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 pt-0">
+                    <div class="text-success small">
+                        <i class="bi bi-graph-up me-1"></i>当前查询结果
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-gender-male"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">男生人数</div>
+                            <div class="h4 mb-0">{{ boy_count }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 pt-0">
+                    <div class="text-primary small">
+                        <i class="bi bi-person me-1"></i>男性学生
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-gender-female"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">女生人数</div>
+                            <div class="h4 mb-0">{{ girl_count }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 pt-0">
+                    <div class="text-pink small">
+                        <i class="bi bi-person me-1"></i>女性学生
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-diagram-3"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">涉及班级</div>
+                            <div class="h4 mb-0">{{ class_count }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 pt-0">
+                    <div class="text-info small">
+                        <i class="bi bi-building me-1"></i>涉及班级数
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 学生列表表格 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0">
+                    <i class="bi bi-table me-2 text-primary"></i>
+                    学生列表
+                </h5>
+                <p class="text-muted mb-0 mt-1">
+                    显示 <strong id="student-count">{{ students|length }}</strong> 名学生
+                </p>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="export-actions me-3">
+                    <div class="btn-group">
+                        <a href="{% url 'student_import_excel' %}" class="btn btn-success">Excel 导入</a>
+                        <a href="{% url 'student_export_excel' %}" class="btn btn-info">Excel 导出</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-filetype-csv me-2"></i>CSV格式</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-filetype-xlsx me-2"></i>Excel格式</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-filetype-pdf me-2"></i>PDF格式</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            {% if students %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">
+                                <i class="bi bi-person-badge me-2"></i>学号
+                            </th>
+                            <th>
+                                <i class="bi bi-person-circle me-2"></i>姓名
+                            </th>
+                            <th class="text-center">
+                                <i class="bi bi-gender-ambiguous me-2"></i>性别
+                            </th>
+                            <th>
+                                <i class="bi bi-diagram-3 me-2"></i>班级
+                            </th>
+                            <th class="text-center">
+                                <i class="bi bi-building me-2"></i>系部
+                            </th>
+                            <th class="text-center">
+                                <i class="bi bi-calendar3 me-2"></i>年龄
+                            </th>
+                            <th class="text-end pe-4">
+                                <i class="bi bi-gear me-2"></i>操作
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-table">
+                        {% for s in students %}
+                        <tr class="student-row">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="student-icon me-3">
+                                        <i class="bi bi-person-circle"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold text-primary">{{ s.sno }}</div>
+                                        <div class="text-muted small">
+                                            <i class="bi bi-telephone me-1"></i>{{ s.telephone|default:"-" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-medium">{{ s.sname }}</div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-geo-alt me-1"></i>{{ s.native|default:"-" }}
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                {% if s.sex == 'boy' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                                    <i class="bi bi-gender-male me-1"></i>男
+                                </span>
+                                {% else %}
+                                <span class="badge bg-pink bg-opacity-10 text-white px-3 py-2">
+                                    <i class="bi bi-gender-female me-1"></i>女
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-medium">{{ s.classno.classname }}</div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-tag me-1"></i>{{ s.classno.classno }}
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-info bg-opacity-10 text-info px-3 py-2">
+                                    <i class="bi bi-building me-1"></i>{{ s.classno.dno.dname|truncatechars:6 }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex flex-column align-items-center">
+                                    <span class="fw-semibold">{{ s.age|default:"-" }}</span>
+                                    <small class="text-muted">岁</small>
+                                </div>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="{% url 'student_detail' s.sno %}"
+                                       class="btn btn-outline-primary btn-sm px-3"
+                                       title="查看详情"
+                                       data-bs-toggle="tooltip">
+                                        <i class="bi bi-eye me-1"></i>查看
+                                    </a>
+                                    <a href="{% url 'student_edit' s.sno %}"
+                                       class="btn btn-outline-success btn-sm px-3"
+                                       title="编辑信息"
+                                       data-bs-toggle="tooltip">
+                                        <i class="bi bi-pencil-square me-1"></i>编辑
+                                    </a>
+                                    <a href="{% url 'student_course' s.sno %}"
+                                       class="btn btn-outline-info btn-sm px-3"
+                                       title="选课管理"
+                                       data-bs-toggle="tooltip">
+                                        <i class="bi bi-journal-plus me-1"></i>选课
+                                    </a>
+                                    <form method="post" 
+                                          action="{% url 'student_delete' s.sno %}"
+                                          class="d-inline delete-form"
+                                          data-student-name="{{ s.sname }}">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                                class="btn btn-outline-danger btn-sm px-3 delete-btn"
+                                                title="删除学生"
+                                                data-bs-toggle="tooltip">
+                                            <i class="bi bi-trash me-1"></i>删除
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="empty-state">
+                    <i class="bi bi-people display-1 text-muted mb-3"></i>
+                    <h5 class="text-muted mb-2">暂无学生数据</h5>
+                    <p class="text-muted mb-3">
+                        {% if request.GET.sno or request.GET.sname or request.GET.sex or request.GET.classno %}
+                            没有找到符合条件的学生记录
+                        {% else %}
+                            还没有任何学生信息，点击上方按钮添加新学生
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'student_add' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i>创建第一个学生
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if students %}
+        <!-- 表格底部 -->
+        <div class="card-footer bg-transparent border-top">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+                <div class="mb-2 mb-md-0">
+                    <span class="text-muted">
+                        显示 <strong>{{ students|length }}</strong> 名学生，共 {{ students|length }} 条记录
+                    </span>
+                </div>
+                <nav aria-label="学生列表分页">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="上一页">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#" aria-label="下一页">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* 图标容器 */
+    .icon-container {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.8rem;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        transition: var(--transition);
+    }
+
+    .icon-container:hover {
+        transform: rotate(-5deg) scale(1.05);
+    }
+
+    /* 统计卡片 */
+    .stat-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #6366f1;
+    }
+
+    /* 粉色主题 */
+    .bg-pink {
+        background-color: #ec4899 !important;
+    }
+
+    .text-pink {
+        color: #ec4899 !important;
+    }
+
+    /* 学生图标 */
+    .student-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: #6366f1;
+    }
+
+    /* 表格样式 */
+    .table {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.04));
+        border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+        font-weight: 600;
+        color: #334155;
+        padding: 1rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(99, 102, 241, 0.03);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    /* 操作按钮组 */
+    .btn-group .btn {
+        border-radius: 8px !important;
+    }
+
+    /* 表单样式 */
+    .form-label {
+        color: #334155;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    /* 输入框样式 */
+    .input-group {
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .input-group .form-control,
+    .input-group .form-select {
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-left: none;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+    }
+
+    .input-group .input-group-text {
+        border: 2px solid #e2e8f0;
+        border-right: none;
+        background-color: #f8fafc;
+        color: #64748b;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .input-group .form-control:focus,
+    .input-group .form-select:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        outline: none;
+    }
+
+    .input-group:focus-within {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .input-group:focus-within .input-group-text {
+        border-color: #6366f1;
+        background-color: #f0f5ff;
+        color: #6366f1;
+    }
+
+    /* 排序按钮组 */
+    .btn-group .btn-check:checked + .btn {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-color: #6366f1;
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-group .btn {
+        border: 2px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .btn-group .btn:hover {
+        border-color: #6366f1;
+        color: #6366f1;
+        background-color: #f0f5ff;
+    }
+
+    /* 空状态 */
+    .empty-state {
+        padding: 3rem 1rem;
+    }
+
+    .empty-state i {
+        opacity: 0.2;
+    }
+
+    /* 操作按钮 */
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-primary {
+        border: 2px solid #6366f1;
+        color: #6366f1;
+    }
+
+    .btn-outline-primary:hover {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-color: #6366f1;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-outline-success {
+        border: 2px solid #10b981;
+        color: #10b981;
+    }
+
+    .btn-outline-success:hover {
+        background: linear-gradient(135deg, #10b981, #059669);
+        border-color: #10b981;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-outline-info {
+        border: 2px solid #06b6d4;
+        color: #06b6d4;
+    }
+
+    .btn-outline-info:hover {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        border-color: #06b6d4;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+    }
+
+    .btn-outline-danger {
+        border: 2px solid #ef4444;
+        color: #ef4444;
+    }
+
+    .btn-outline-danger:hover {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        border-color: #ef4444;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-outline-secondary {
+        border: 2px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 主按钮样式 */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    /* 徽章样式 */
+    .badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        border: none;
+    }
+
+    /* 分页样式 */
+    .pagination {
+        margin-bottom: 0;
+    }
+
+    .page-link {
+        border: none;
+        color: #64748b;
+        padding: 0.5rem 0.75rem;
+        margin: 0 2px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .page-link:hover {
+        background-color: #6366f1;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .page-item.active .page-link {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-color: #6366f1;
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .icon-container {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+        }
+
+        .table td, .table th {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+        }
+
+        .btn-sm i {
+            margin-right: 0;
+        }
+
+        .btn-sm span {
+            display: none;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.3rem;
+        }
+
+        .h4 {
+            font-size: 1.5rem;
+        }
+
+        .d-flex.gap-2 {
+            gap: 0.25rem !important;
+        }
+
+        .d-flex.gap-2 .btn-sm {
+            padding: 0.25rem 0.5rem;
+        }
+    }
+
+    /* 动画效果 */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .student-row {
+        animation: fadeInUp 0.4s ease-out;
+        animation-fill-mode: both;
+    }
+
+    .student-row:nth-child(1) { animation-delay: 0.1s; }
+    .student-row:nth-child(2) { animation-delay: 0.15s; }
+    .student-row:nth-child(3) { animation-delay: 0.2s; }
+    .student-row:nth-child(4) { animation-delay: 0.25s; }
+    .student-row:nth-child(5) { animation-delay: 0.3s; }
+    .student-row:nth-child(6) { animation-delay: 0.35s; }
+    .student-row:nth-child(7) { animation-delay: 0.4s; }
+    .student-row:nth-child(8) { animation-delay: 0.45s; }
+    .student-row:nth-child(9) { animation-delay: 0.5s; }
+    .student-row:nth-child(10) { animation-delay: 0.55s; }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 页面加载动画
+        const pageContent = document.querySelector('.container-fluid');
+        pageContent.style.opacity = '0';
+        pageContent.style.transform = 'translateY(10px)';
+
+        setTimeout(() => {
+            pageContent.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            pageContent.style.opacity = '1';
+            pageContent.style.transform = 'translateY(0)';
+        }, 100);
+
+        // 删除确认对话框
+        document.querySelectorAll('.delete-form').forEach(form => {
+            const studentName = form.getAttribute('data-student-name');
+            const deleteBtn = form.querySelector('.delete-btn');
+            
+            deleteBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // 自定义确认对话框
+                const modalHtml = `
+                    <div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header border-bottom-0 pb-0">
+                                    <div class="modal-title">
+                                        <div class="d-flex align-items-center">
+                                            <div class="warning-icon me-3">
+                                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="mb-1">确认删除</h5>
+                                                <p class="text-muted mb-0">此操作不可撤销</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body py-4">
+                                    <p>确定要删除学生 <strong class="text-danger">${studentName}</strong> 吗？</p>
+                                    <p class="text-muted small mb-0">删除后，该学生的所有信息将永久丢失，包括选课记录和成绩信息。</p>
+                                </div>
+                                <div class="modal-footer border-top-0 pt-0">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                        <i class="bi bi-x-circle me-1"></i>取消
+                                    </button>
+                                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                                        <i class="bi bi-trash me-1"></i>确认删除
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 创建并显示模态框
+                const modalContainer = document.createElement('div');
+                modalContainer.innerHTML = modalHtml;
+                document.body.appendChild(modalContainer);
+                
+                const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+                modal.show();
+                
+                // 确认删除
+                document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+                    form.submit();
+                });
+                
+                // 模态框关闭后清理
+                document.getElementById('confirmDeleteModal').addEventListener('hidden.bs.modal', function() {
+                    document.body.removeChild(modalContainer);
+                });
+                
+                return false;
+            });
+        });
+
+        // 表格行悬停效果
+        document.querySelectorAll('.student-row').forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+                this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.08)';
+            });
+
+            row.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+
+        // 统计卡片动画
+        const statCards = document.querySelectorAll('.stat-card');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInUp 0.5s ease-out forwards';
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        statCards.forEach(card => {
+            card.style.opacity = '0';
+            observer.observe(card);
+        });
+
+        // 按钮点击效果
+        document.querySelectorAll('.btn').forEach(button => {
+            button.addEventListener('mousedown', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            
+            button.addEventListener('mouseup', function() {
+                this.style.transform = '';
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+            });
+        });
+
+        // 搜索表单提交动画
+        const searchBtn = document.getElementById('searchBtn');
+        const searchForm = document.getElementById('searchForm');
+        
+        searchForm.addEventListener('submit', function() {
+            searchBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>查询中...';
+            searchBtn.disabled = true;
+        });
+
+        // 输入框聚焦效果
+        document.querySelectorAll('.form-control, .form-select').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.style.transform = 'translateY(-3px)';
+                this.parentElement.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.12)';
+            });
+
+            input.addEventListener('blur', function() {
+                this.parentElement.style.transform = '';
+                this.parentElement.style.boxShadow = '';
+            });
+        });
+
+        // 实时更新学生数量
+        const studentCount = document.getElementById('student-count');
+        if (studentCount) {
+            const studentRows = document.querySelectorAll('.student-row');
+            studentCount.textContent = studentRows.length;
+        }
+
+        // 表格行点击效果（查看详情）
+        document.querySelectorAll('.student-row').forEach(row => {
+            row.addEventListener('click', function(e) {
+                // 如果不是点击在操作按钮上
+                if (!e.target.closest('a') && !e.target.closest('button') && !e.target.closest('form')) {
+                    const studentSno = this.querySelector('.text-primary').textContent;
+                    const detailUrl = "{% url 'student_detail' '00000' %}".replace('00000', studentSno);
+                    window.location.href = detailUrl;
+                }
+            });
+        });
+
+        // 工具提示
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // 自动聚焦到第一个搜索字段
+        setTimeout(() => {
+            const firstInput = document.querySelector('#sno');
+            if (firstInput && window.location.search.includes('search')) {
+                firstInput.focus();
+            }
+        }, 300);
+    });
+    document.querySelectorAll('input[name="order"], input[name="direction"]')
+    .forEach(el => {
+        el.addEventListener('change', () => {
+            document.getElementById('searchForm').submit();
+        });
+    });
+</script>
+{% endblock %}

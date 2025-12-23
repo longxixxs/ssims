@@ -1,0 +1,568 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if depart %}编辑系部{% else %}新增系部{% endif %} - 学生信息管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-xl-5">
+            <!-- 页面标题 -->
+            <div class="d-flex align-items-center mb-4">
+                <div class="icon-container me-3">
+                    <i class="bi bi-building{% if depart %}-check{% else %}-add{% endif %}"></i>
+                </div>
+                <div>
+                    <h2 class="mb-1">{% if depart %}编辑系部信息{% else %}创建新系部{% endif %}</h2>
+                    <p class="text-muted mb-0">
+                        {% if depart %}修改系部详细信息{% else %}填写系部信息以创建新系部{% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- 消息提示 -->
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {% if message.tags == 'error' %}
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    {% elif message.tags == 'success' %}
+                    <i class="bi bi-check-circle me-2"></i>
+                    {% else %}
+                    <i class="bi bi-info-circle me-2"></i>
+                    {% endif %}
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- 表单卡片 -->
+            <div class="card">
+                <div class="card-body p-4">
+                    <form method="post" class="needs-validation" novalidate action="">
+                        {% csrf_token %}
+
+                        <!-- 系部编号 -->
+                        <div class="mb-4">
+                            <label for="dno" class="form-label fw-semibold">
+                                <i class="bi bi-hash me-1"></i>系部编号
+                                <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-tag"></i>
+                                </span>
+                                <input type="text"
+                                       id="dno"
+                                       name="dno"
+                                       class="form-control border-start-0"
+                                       value="{{ depart.dno|default:'' }}"
+                                       {% if depart %}readonly style="background-color: #f8f9fa;"{% endif %}
+                                       required
+                                       maxlength="6"
+                                       pattern="[A-Za-z0-9]{1,6}"
+                                       placeholder="例如：CS001">
+                            </div>
+                            <div class="form-text text-muted ms-1">
+                                请输入6位系部编号，仅限字母和数字
+                            </div>
+                            <div class="invalid-feedback ms-1">
+                                请输入有效的系部编号（最多6位字母或数字）
+                            </div>
+                        </div>
+
+                        <!-- 系部名称 -->
+                        <div class="mb-4">
+                            <label for="dname" class="form-label fw-semibold">
+                                <i class="bi bi-card-heading me-1"></i>系部名称
+                                <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-building"></i>
+                                </span>
+                                <input type="text"
+                                       id="dname"
+                                       name="dname"
+                                       class="form-control border-start-0"
+                                       value="{{ depart.dname|default:'' }}"
+                                       required
+                                       placeholder="例如：计算机科学系">
+                            </div>
+                            <div class="form-text text-muted ms-1">
+                                请输入完整的系部名称
+                            </div>
+                            <div class="invalid-feedback ms-1">
+                                请输入系部名称
+                            </div>
+                        </div>
+
+                        <!-- 联系电话 -->
+                        <div class="mb-4">
+                            <label for="telephone" class="form-label fw-semibold">
+                                <i class="bi bi-telephone me-1"></i>联系电话
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-phone"></i>
+                                </span>
+                                <input type="text"
+                                       id="telephone"
+                                       name="telephone"
+                                       class="form-control border-start-0"
+                                       value="{{ depart.telephone|default:'' }}"
+                                       placeholder="例如：010-12345678">
+                            </div>
+                            <div class="form-text text-muted ms-1">
+                                请输入系部联系电话
+                            </div>
+                        </div>
+
+                        <!-- 表单按钮 -->
+                        <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top">
+                            <a href="/departs/" class="btn btn-outline-secondary px-4">
+                                <i class="bi bi-arrow-left me-2"></i>返回列表
+                            </a>
+                            <button type="submit" id="submitBtn" class="btn btn-primary px-4">
+                                <i class="bi bi-check-circle me-2"></i>
+                                {% if depart %}更新系部信息{% else %}创建系部{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 预览卡片 -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-eye me-2"></i>系部信息预览
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">系部编号</div>
+                                <div class="fw-semibold text-primary" id="preview-dno">
+                                    {{ depart.dno|default:"未填写" }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">系部名称</div>
+                                <div class="fw-semibold" id="preview-dname">
+                                    {{ depart.dname|default:"未填写" }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">联系电话</div>
+                                <div class="fw-semibold" id="preview-telephone">
+                                    {{ depart.telephone|default:"未填写" }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 图标容器 */
+    .icon-container {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.8rem;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .icon-container:hover {
+        transform: rotate(-5deg) scale(1.05);
+    }
+
+    /* 表单标签 */
+    .form-label {
+        color: #334155;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-label .text-danger {
+        color: #ef4444;
+        margin-left: 0.25rem;
+    }
+
+    /* 输入框样式 */
+    .input-group-lg {
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .input-group-lg .form-control {
+        padding: 0.875rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-left: none;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .input-group-lg .input-group-text {
+        border: 2px solid #e2e8f0;
+        border-right: none;
+        background-color: #f8fafc;
+        color: #64748b;
+        padding: 0.875rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .input-group-lg .form-control:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        outline: none;
+    }
+
+    .input-group-lg:focus-within {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .input-group-lg:focus-within .input-group-text {
+        border-color: #6366f1;
+        background-color: #f0f5ff;
+        color: #6366f1;
+    }
+
+    /* 表单文本提示 */
+    .form-text {
+        font-size: 0.875rem;
+        margin-top: 0.375rem;
+    }
+
+    /* 预览项目 */
+    .preview-item {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 1.25rem 1rem;
+        transition: all 0.3s ease;
+        height: 100%;
+        border: 1px solid transparent;
+    }
+
+    .preview-item:hover {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    /* 按钮样式 */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-secondary {
+        border: 2px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    /* 验证样式 */
+    .was-validated .form-control:invalid {
+        border-color: #ef4444;
+    }
+
+    .was-validated .form-control:valid {
+        border-color: #10b981;
+    }
+
+    .invalid-feedback {
+        display: none;
+        color: #ef4444;
+        font-size: 0.875rem;
+        margin-top: 0.375rem;
+    }
+
+    .was-validated .form-control:invalid ~ .invalid-feedback {
+        display: block;
+    }
+
+    /* 消息提示 */
+    .alert {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        animation: fadeInUp 0.3s ease-out;
+    }
+
+    .alert-danger {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+        color: #dc2626;
+        border-left: 4px solid #ef4444;
+    }
+
+    .alert-success {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+        color: #059669;
+        border-left: 4px solid #10b981;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .icon-container {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+        }
+
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .d-flex.justify-content-between .btn {
+            width: 100%;
+        }
+
+        .preview-item {
+            padding: 1rem 0.75rem;
+        }
+    }
+
+    /* 动画效果 */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .card {
+        animation: fadeInUp 0.5s ease-out;
+        animation-fill-mode: both;
+    }
+
+    .card:first-of-type {
+        animation-delay: 0.1s;
+    }
+
+    .card:last-of-type {
+        animation-delay: 0.2s;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取表单和提交按钮
+        const form = document.querySelector('.needs-validation');
+        const submitBtn = document.getElementById('submitBtn');
+        const originalBtnText = submitBtn.innerHTML;
+
+        // 表单验证
+        form.addEventListener('submit', function(event) {
+            // 验证表单
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                // 如果验证通过，显示加载状态
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>保存中...';
+                submitBtn.disabled = true;
+                submitBtn.classList.add('disabled');
+                
+                // 添加一个超时保护，10秒后恢复按钮状态
+                setTimeout(function() {
+                    if (submitBtn.disabled) {
+                        submitBtn.innerHTML = originalBtnText;
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('disabled');
+                        alert('保存时间过长，请检查网络连接后重试。');
+                    }
+                }, 10000); // 10秒超时
+            }
+            
+            form.classList.add('was-validated');
+        }, false);
+
+        // 实时预览功能
+        const inputs = {
+            dno: document.getElementById('dno'),
+            dname: document.getElementById('dname'),
+            telephone: document.getElementById('telephone')
+        };
+
+        const previews = {
+            dno: document.getElementById('preview-dno'),
+            dname: document.getElementById('preview-dname'),
+            telephone: document.getElementById('preview-telephone')
+        };
+
+        // 更新预览
+        function updatePreview() {
+            // 系部编号预览
+            if (inputs.dno.value.trim()) {
+                previews.dno.textContent = inputs.dno.value;
+                previews.dno.classList.add('text-primary');
+            } else {
+                previews.dno.textContent = '未填写';
+                previews.dno.classList.remove('text-primary');
+            }
+
+            // 系部名称预览
+            previews.dname.textContent = inputs.dname.value.trim() || '未填写';
+
+            // 联系电话预览
+            previews.telephone.textContent = inputs.telephone.value.trim() || '未填写';
+        }
+
+        // 监听输入变化
+        Object.values(inputs).forEach(input => {
+            if (input) {
+                input.addEventListener('input', updatePreview);
+                // 实时验证
+                input.addEventListener('blur', function() {
+                    this.classList.add('was-validated');
+                });
+            }
+        });
+
+        // 初始化预览
+        updatePreview();
+
+        // 输入框动画效果
+        document.querySelectorAll('.form-control').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.style.transform = 'translateY(-3px)';
+                this.parentElement.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.12)';
+            });
+
+            input.addEventListener('blur', function() {
+                this.parentElement.style.transform = '';
+                this.parentElement.style.boxShadow = '';
+            });
+        });
+
+        // 实时验证
+        inputs.dno.addEventListener('input', function() {
+            const value = this.value.trim();
+            const regex = /^[A-Za-z0-9]{1,6}$/;
+            
+            if (value.length > 0) {
+                if (!regex.test(value)) {
+                    this.setCustomValidity('系部编号只能包含字母和数字，最多6位');
+                } else {
+                    this.setCustomValidity('');
+                }
+            }
+        });
+
+        // 预览项悬停效果
+        document.querySelectorAll('.preview-item').forEach(item => {
+            item.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+                this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.1)';
+            });
+
+            item.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+
+        // 页面加载动画
+        const pageContent = document.querySelector('.container-fluid');
+        pageContent.style.opacity = '0';
+        pageContent.style.transform = 'translateY(10px)';
+
+        setTimeout(() => {
+            pageContent.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            pageContent.style.opacity = '1';
+            pageContent.style.transform = 'translateY(0)';
+        }, 100);
+
+        // 如果有错误消息，3秒后自动消失
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alert);
+                setTimeout(() => bsAlert.close(), 5000);
+            }, 3000);
+        });
+
+        // 表单验证辅助函数
+        function validateField(field) {
+            if (field.required && !field.value.trim()) {
+                field.classList.add('is-invalid');
+                return false;
+            }
+            
+            if (field.pattern) {
+                const regex = new RegExp(field.pattern);
+                if (!regex.test(field.value)) {
+                    field.classList.add('is-invalid');
+                    return false;
+                }
+            }
+            
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+            return true;
+        }
+
+        // 添加失去焦点验证
+        document.querySelectorAll('input[required], input[pattern]').forEach(input => {
+            input.addEventListener('blur', function() {
+                validateField(this);
+            });
+        });
+    });
+</script>
+{% endblock %}

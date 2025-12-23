@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="现代化学生信息管理系统 - 高效管理学生、班级、课程数据">
+    <meta name="keywords" content="学生管理,教务系统,Django">
+    <meta name="author" content="Your Name">
+    
+    <!-- 安全策略 -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+    <title>{% block title %}学生信息管理系统{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'vendor/bootstrap-icons/css/bootstrap-icons.min.css' %}" rel="stylesheet">
+    
+    <!-- 自定义样式（从内联抽离） -->
+    <link href="{% static 'css/base.css' %}" rel="stylesheet">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- 全局加载动画（优化用户体验） -->
+<div id="globalLoading" class="global-loading">
+    <div class="loading-spinner"></div>
+</div>
+
+<!-- 顶部导航栏 -->
+<nav class="navbar-main" role="navigation" aria-label="主导航">
+    <div class="d-flex align-items-center">
+        <button class="menu-toggle d-lg-none me-3" 
+                id="menuToggle" 
+                aria-label="切换侧边栏"
+                aria-expanded="false">
+            <i class="bi bi-list"></i>
+        </button>
+        <a href="/" class="brand" aria-label="首页">
+            <div class="brand-icon">
+                <i class="bi bi-mortarboard-fill"></i>
+            </div>
+            <div class="brand-text">学生信息管理系统</div>
+        </a>
+    </div>
+
+    <div class="user-menu">
+        {% if user.is_authenticated %}
+            <div class="user-avatar" aria-label="用户头像">
+                {{ user.username|slice:":1"|upper }}
+            </div>
+            <div class="d-none d-md-block">
+                <span class="fw-medium">{{ user.username }}</span>
+            </div>
+            <div class="d-flex">
+                <a href="/password/" class="nav-link me-2">
+                    <i class="bi bi-key me-1" aria-hidden="true"></i>修改密码
+                </a>
+                <a href="/logout/" class="nav-link">
+                    <i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>退出
+                </a>
+            </div>
+        {% else %}
+            <a href="/login/" class="nav-link">
+                <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>登录
+            </a>
+        {% endif %}
+    </div>
+</nav>
+
+<div class="d-flex position-relative">
+    <!-- 移动端遮罩 -->
+    <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar" role="complementary" aria-label="侧边导航">
+        {% include 'partials/sidebar_nav.html' %}
+    </aside>
+
+    <!-- 主内容 -->
+    <main class="main-content" role="main">
+        <!-- 页面内容 -->
+        {% block content %}{% endblock %}
+
+        <!-- 页脚 -->
+        <footer class="mt-5 pt-4 text-center text-muted small border-top">
+            <div>学生信息管理系统 &copy; {% now "Y" %}</div>
+            <div class="mt-1">v2.0 | Powered by Django</div>
+        </footer>
+    </main>
+</div>
+
+<!-- Toast 通知容器（可选，用于 JS 动态提示） -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+<!-- JavaScript -->
+<script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'js/base.js' %}"></script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>
