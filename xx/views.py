@@ -1120,7 +1120,7 @@ def get_ai_response(messages):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "deepseek-chat",
+        "model": f"Bearer {settings.AI_MODEL}",
         "messages": messages
     }
     try:
