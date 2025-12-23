@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI 助手 - 学生信息管理系统{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/chat.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- 页面标题 -->
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div>
+                    <h1 class="h3 fw-bold mb-2">AI 助手</h1>
+                    <p class="text-muted mb-0">使用自然语言管理学生信息，支持查询、更新和统计操作</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="showExamples">
+                        <i class="bi bi-lightbulb me-1"></i>查询示例
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="exportChat">
+                        <i class="bi bi-download me-1"></i>导出对话
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="clearChat">
+                        <i class="bi bi-trash me-1"></i>清空对话
+                    </button>
+                </div>
+            </div>
+                <!-- 示例问题 Modal -->
+                    <div class="modal fade" id="examplesModal" tabindex="-1" aria-labelledby="examplesModalLabel" aria-hidden="true">
+                      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="examplesModalLabel">
+                              <i class="bi bi-lightbulb me-2"></i>查询示例
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                          </div>
+
+                          <div class="modal-body">
+                            <p class="text-muted mb-3">点击任意示例，将自动填入输入框。</p>
+
+                            <div class="row g-3">
+                              <div class="col-md-6">
+                                <div class="example-group">
+                                  <div class="fw-semibold mb-2">学生信息</div>
+                                  <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-outline-primary example-question" data-question="查询学号001的学生信息">查询学号001的学生信息</button>
+                                    <button type="button" class="btn btn-outline-primary example-question" data-question="查询姓名为高吉利的学生信息">查询姓名为张三的学生信息</button>
+                                    <button type="button" class="btn btn-outline-primary example-question" data-question="查询年龄大于20岁的学生">查询年龄大于20岁的学生</button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div class="col-md-6">
+                                <div class="example-group">
+                                  <div class="fw-semibold mb-2">班级与系部</div>
+                                  <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-outline-success example-question" data-question="查询班级编号为C2501的班级信息">查询班级编号为01的班级信息</button>
+                                    <button type="button" class="btn btn-outline-success example-question" data-question="查询计算机科学系的所有班级">查询计算机系的所有班级</button>
+                                    <button type="button" class="btn btn-outline-success example-question" data-question="统计每个系部的班级数量">统计每个系部的班级数量</button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div class="col-md-6">
+                                <div class="example-group">
+                                  <div class="fw-semibold mb-2">课程与成绩</div>
+                                  <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-outline-warning example-question" data-question="查询课程编号C001的课程信息">查询课程编号C001的课程信息</button>
+                                    <button type="button" class="btn btn-outline-warning example-question" data-question="查询学号001的所有成绩">查询学号001的所有成绩</button>
+                                    <button type="button" class="btn btn-outline-warning example-question" data-question="统计课程C001的平均成绩">统计课程C001的平均成绩</button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+            <!-- 聊天容器 -->
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-body p-0">
+                    <!-- 消息区域 -->
+                    <div class="chat-messages p-4" id="chatMessages" style="height: 800px; overflow-y: auto;">
+                        {% for m in messages %}
+                            {% if m.role != "system" %}
+                                <div class="message mb-4 {% if m.role == 'user' %}text-end{% endif %}">
+                                    <div class="d-flex align-items-start {% if m.role == 'user' %}flex-row-reverse{% endif %}">
+                                        <!-- 头像 -->
+                                        <div class="avatar flex-shrink-0">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center
+                                                {% if m.role == 'user' %}bg-primary{% else %}bg-success{% endif %}"
+                                                style="width: 40px; height: 40px;">
+                                                <i class="bi {% if m.role == 'user' %}bi-person-fill{% else %}bi-robot{% endif %} text-white"></i>
+                                            </div>
+                                        </div>
+
+                                        <!-- 消息内容 -->
+                                        <div class="message-content mx-3" style="max-width: 75%;">
+                                            <div class="d-flex align-items-center mb-1 {% if m.role == 'user' %}justify-content-end{% endif %}">
+                                                <span class="badge {% if m.role == 'user' %}bg-primary{% else %}bg-success{% endif %} rounded-pill px-3 py-1">
+                                                    {% if m.role == 'user' %}用户{% else %}AI助手{% endif %}
+                                                </span>
+                                            </div>
+
+                                            <div class="card border-0 rounded-3 {% if m.role == 'user' %}bg-primary text-white{% else %}bg-light{% endif %}">
+                                                <div class="card-body p-3">
+                                                    {% if m.role == 'assistant' %}
+                                                        {# 安全：不使用 safe #}
+                                                        <div class="ai-result-container">{{ m.content|linebreaks }}</div>
+                                                    {% else %}
+                                                        <p class="mb-0 {% if m.role == 'user' %}text-white{% endif %}">{{ m.content }}</p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% empty %}
+                            <div class="text-center py-5" id="emptyState">
+                                <i class="bi bi-chat-dots text-muted" style="font-size: 3rem;"></i>
+                                <h5 class="text-muted mt-3">开始对话</h5>
+                                <p class="text-muted">输入指令开始与AI助手交互</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- 输入区域 -->
+                    <div class="border-top p-4">
+                        <form method="post" id="chatForm">
+                            {% csrf_token %}
+                            <div class="input-group">
+                                <input type="text" name="message" class="form-control border-2 py-3"
+                                       placeholder="请输入指令，例如：查询学号001的学生信息"
+                                       autocomplete="off" required id="messageInput">
+                                <button class="btn btn-primary px-4" type="submit" id="sendBtn">
+                                    <i class="bi bi-send me-1"></i>发送
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/chat.js' %}"></script>
+{% endblock %}

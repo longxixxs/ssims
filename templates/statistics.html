@@ -1,0 +1,760 @@
+{% extends 'base.html' %}
+
+{% block title %}统计分析 - 学生信息管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和说明 -->
+    <div class="d-flex align-items-center mb-4">
+        <div class="icon-container me-3">
+            <i class="bi bi-bar-chart-line-fill"></i>
+        </div>
+        <div>
+            <h2 class="mb-1">统计分析</h2>
+            <p class="text-muted mb-0">系统数据统计与可视化分析</p>
+        </div>
+    </div>
+
+    <!-- 数据统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="text-muted small mb-1">系部学生分布</div>
+                            <div class="h4 mb-0" id="depart-count">{{ depart_stat|length }}</div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                                <i class="bi bi-building me-1"></i>{{ depart_stat|length }} 个系部
+                            </span>
+                        </div>
+                    </div>
+                    <div class="progress mt-3" style="height: 6px;">
+                        <div class="progress-bar" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-journal-text"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="text-muted small mb-1">系部选课统计</div>
+                            <div class="h4 mb-0" id="course-count">{{ depart_course_stat|length }}</div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">
+                                <i class="bi bi-book me-1"></i>{{ depart_course_stat|length }} 个统计项
+                            </span>
+                        </div>
+                    </div>
+                    <div class="progress mt-3" style="height: 6px;">
+                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-calculator-fill"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="text-muted small mb-1">数据统计周期</div>
+                            <div class="h4 mb-0">{% now "m月" %}</div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-info bg-opacity-10 text-info px-3 py-2">
+                                <i class="bi bi-calendar me-1"></i>本月数据
+                            </span>
+                        </div>
+                    </div>
+                    <div class="progress mt-3" style="height: 6px;">
+                        <div class="progress-bar bg-info" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 各系学生人数统计 -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="bi bi-people-fill me-2 text-primary"></i>
+                            各系部学生人数分布
+                        </h5>
+                        <p class="text-muted mb-0 mt-1">按系部统计学生数量</p>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-funnel me-1"></i>排序
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item sort-depart" href="#" data-sort="name">按名称排序</a></li>
+                            <li><a class="dropdown-item sort-depart" href="#" data-sort="value">按人数排序</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    {% if depart_stat %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">
+                                        <i class="bi bi-building me-2"></i>系部名称
+                                    </th>
+                                    <th class="text-center">
+                                        <i class="bi bi-people me-2"></i>学生人数
+                                    </th>
+                                    <th class="text-end pe-4">
+                                        <i class="bi bi-bar-chart me-2"></i>占比
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="depart-table">
+                                {% for d in depart_stat %}
+                                {% with total_students=depart_stat|sum_attr:"total" %}
+                                {% widthratio d.total total_students 100 as percentage %}
+                                <tr class="stat-row">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="dept-icon me-3">
+                                                <i class="bi bi-building"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">{{ d.classno__dno__dname|default:"未知系部" }}</div>
+                                                <div class="text-muted small">
+                                                    <i class="bi bi-tag me-1"></i>系部数据
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="fw-bold text-primary">{{ d.total }}</div>
+                                        <div class="text-muted small">人</div>
+                                    </td>
+                                    <td class="pe-4">
+                                        <div class="d-flex align-items-center justify-content-end">
+                                            <div class="progress flex-grow-1 me-3" style="height: 8px; width: 120px;">
+                                                <div class="progress-bar bg-primary" role="progressbar"
+                                                     style="width: {% widthratio d.total total_students 100 %}%"
+                                                     aria-valuenow="{{ percentage }}"
+                                                     aria-valuemin="0"
+                                                     aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <div class="fw-semibold text-end" style="min-width: 50px;">
+                                                {% widthratio d.total total_students 100 %}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="empty-state">
+                            <i class="bi bi-people display-1 text-muted mb-3"></i>
+                            <h5 class="text-muted mb-2">暂无系部学生数据</h5>
+                            <p class="text-muted mb-3">系统暂时没有系部学生分布数据</p>
+                            <a href="/students/" class="btn btn-primary">
+                                <i class="bi bi-eye me-2"></i>查看学生管理
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer bg-transparent border-top">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted">
+                                共 <strong id="depart-total">{{ depart_stat|length }}</strong> 个系部
+                            </span>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                                <i class="bi bi-person-badge me-1"></i>总计学生:
+                                <strong>{{ depart_stat|sum_attr:"total"|default:0 }}</strong>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 各系选课人次统计 -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="bi bi-journal-check me-2 text-success"></i>
+                            各系部选课人次统计
+                        </h5>
+                        <p class="text-muted mb-0 mt-1">按系部统计选课情况</p>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-funnel me-1"></i>排序
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item sort-course" href="#" data-sort="name">按名称排序</a></li>
+                            <li><a class="dropdown-item sort-course" href="#" data-sort="value">按选课数排序</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    {% if depart_course_stat %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">
+                                        <i class="bi bi-building me-2"></i>系部名称
+                                    </th>
+                                    <th class="text-center">
+                                        <i class="bi bi-journal-check me-2"></i>选课人次
+                                    </th>
+                                    <th class="text-end pe-4">
+                                        <i class="bi bi-bar-chart me-2"></i>占比
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="course-table">
+                                {% for d in depart_course_stat %}
+                                {% with total_courses=depart_course_stat|sum_attr:"total" %}
+                                {% widthratio d.total total_courses 100 as percentage %}
+                                <tr class="stat-row">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="dept-icon me-3">
+                                                <i class="bi bi-building"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">{{ d.sno__classno__dno__dname|default:"未知系部" }}</div>
+                                                <div class="text-muted small">
+                                                    <i class="bi bi-book me-1"></i>选课数据
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="fw-bold text-success">{{ d.total }}</div>
+                                        <div class="text-muted small">人次</div>
+                                    </td>
+                                    <td class="pe-4">
+                                        <div class="d-flex align-items-center justify-content-end">
+                                            <div class="progress flex-grow-1 me-3" style="height: 8px; width: 120px;">
+                                                <div class="progress-bar bg-success" role="progressbar"
+                                                     style="width: {% widthratio d.total total_courses 100 %}%"
+                                                     aria-valuenow="{{ percentage }}"
+                                                     aria-valuemin="0"
+                                                     aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <div class="fw-semibold text-end" style="min-width: 50px;">
+                                                {% widthratio d.total total_courses 100 %}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="empty-state">
+                            <i class="bi bi-journal-x display-1 text-muted mb-3"></i>
+                            <h5 class="text-muted mb-2">暂无选课统计</h5>
+                            <p class="text-muted mb-3">系统暂时没有系部选课统计数据</p>
+                            <a href="/courses/" class="btn btn-success">
+                                <i class="bi bi-journal-text me-2"></i>查看课程管理
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer bg-transparent border-top">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted">
+                                共 <strong id="course-total">{{ depart_course_stat|length }}</strong> 个系部
+                            </span>
+                        </div>
+                        <div>
+                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">
+                                <i class="bi bi-journal-check me-1"></i>总计选课:
+                                <strong>{{ depart_course_stat|sum_attr:"total"|default:0 }}</strong>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据说明卡片 -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-2 text-center mb-3 mb-md-0">
+                    <div class="info-icon">
+                        <i class="bi bi-info-circle"></i>
+                    </div>
+                </div>
+                <div class="col-md-10">
+                    <h5 class="mb-2">统计说明</h5>
+                    <p class="text-muted mb-0">
+                        本页面展示了系统中各系部的学生人数分布和选课人次统计。数据基于当前系统数据进行实时统计，反映了各系部的教学规模和学生学习活跃度。统计周期为当前月份，数据每日自动更新。
+                    </p>
+                    <div class="mt-3">
+                        <span class="badge bg-primary bg-opacity-10 text-primary me-2 mb-2">
+                            <i class="bi bi-clock me-1"></i>实时统计
+                        </span>
+                        <span class="badge bg-success bg-opacity-10 text-success me-2 mb-2">
+                            <i class="bi bi-check-circle me-1"></i>自动更新
+                        </span>
+                        <span class="badge bg-info bg-opacity-10 text-info mb-2">
+                            <i class="bi bi-database me-1"></i>数据驱动
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 图标容器 */
+    .icon-container {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.8rem;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        transition: var(--transition);
+    }
+
+    .icon-container:hover {
+        transform: rotate(-5deg) scale(1.05);
+    }
+
+    /* 统计卡片 */
+    .stat-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #6366f1;
+    }
+
+    /* 系部图标 */
+    .dept-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: #6366f1;
+    }
+
+    /* 信息图标 */
+    .info-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: #6366f1;
+        margin: 0 auto;
+    }
+
+    /* 表格样式 */
+    .table {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.04));
+        border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+        font-weight: 600;
+        color: #334155;
+        padding: 1rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(99, 102, 241, 0.03);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    /* 进度条 */
+    .progress {
+        border-radius: 4px;
+        background-color: #f1f3f5;
+    }
+
+    .progress-bar {
+        border-radius: 4px;
+        transition: width 0.6s ease;
+    }
+
+    /* 空状态 */
+    .empty-state {
+        padding: 2rem 1rem;
+    }
+
+    .empty-state i {
+        opacity: 0.2;
+    }
+
+    /* 按钮样式 */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+        border: none;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-success:hover {
+        background: linear-gradient(135deg, #0da271, #047857);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-outline-secondary {
+        border: 2px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 徽章样式 */
+    .badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        border: none;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .icon-container {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+        }
+
+        .table td, .table th {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .progress {
+            width: 80px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.3rem;
+        }
+
+        .info-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 1.8rem;
+        }
+    }
+
+    /* 动画效果 */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes progressFill {
+        from {
+            width: 0%;
+        }
+    }
+
+    .stat-row {
+        animation: fadeInUp 0.4s ease-out;
+        animation-fill-mode: both;
+    }
+
+    .progress-bar {
+        animation: progressFill 1s ease-out forwards;
+    }
+
+    .stat-row:nth-child(1) { animation-delay: 0.1s; }
+    .stat-row:nth-child(2) { animation-delay: 0.15s; }
+    .stat-row:nth-child(3) { animation-delay: 0.2s; }
+    .stat-row:nth-child(4) { animation-delay: 0.25s; }
+    .stat-row:nth-child(5) { animation-delay: 0.3s; }
+    .stat-row:nth-child(6) { animation-delay: 0.35s; }
+    .stat-row:nth-child(7) { animation-delay: 0.4s; }
+    .stat-row:nth-child(8) { animation-delay: 0.45s; }
+    .stat-row:nth-child(9) { animation-delay: 0.5s; }
+    .stat-row:nth-child(10) { animation-delay: 0.55s; }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 页面加载动画
+        const pageContent = document.querySelector('.container-fluid');
+        pageContent.style.opacity = '0';
+        pageContent.style.transform = 'translateY(10px)';
+
+        setTimeout(() => {
+            pageContent.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            pageContent.style.opacity = '1';
+            pageContent.style.transform = 'translateY(0)';
+        }, 100);
+
+        // 统计卡片悬停效果
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px)';
+                this.style.boxShadow = '0 12px 35px rgba(0, 0, 0, 0.12)';
+            });
+
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(-5px)';
+                this.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.1)';
+            });
+        });
+
+        // 表格行悬停效果
+        document.querySelectorAll('.stat-row').forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+                this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.08)';
+            });
+
+            row.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+
+        // 系部表格排序功能
+        document.querySelectorAll('.sort-depart').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const sortBy = this.getAttribute('data-sort');
+                const rows = Array.from(document.querySelectorAll('#depart-table tr'));
+
+                rows.sort((a, b) => {
+                    if (sortBy === 'name') {
+                        const nameA = a.querySelector('.fw-semibold').textContent.toLowerCase();
+                        const nameB = b.querySelector('.fw-semibold').textContent.toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    } else {
+                        const valueA = parseInt(a.querySelector('.text-primary').textContent);
+                        const valueB = parseInt(b.querySelector('.text-primary').textContent);
+                        return valueB - valueA; // 降序排列
+                    }
+                });
+
+                const tbody = document.getElementById('depart-table');
+                tbody.innerHTML = '';
+                rows.forEach(row => tbody.appendChild(row));
+
+                // 添加排序动画
+                rows.forEach((row, index) => {
+                    row.style.animation = 'none';
+                    setTimeout(() => {
+                        row.style.animation = `fadeInUp 0.3s ease-out ${index * 0.05}s forwards`;
+                    }, 10);
+                });
+            });
+        });
+
+        // 选课表格排序功能
+        document.querySelectorAll('.sort-course').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const sortBy = this.getAttribute('data-sort');
+                const rows = Array.from(document.querySelectorAll('#course-table tr'));
+
+                rows.sort((a, b) => {
+                    if (sortBy === 'name') {
+                        const nameA = a.querySelector('.fw-semibold').textContent.toLowerCase();
+                        const nameB = b.querySelector('.fw-semibold').textContent.toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    } else {
+                        const valueA = parseInt(a.querySelector('.text-success').textContent);
+                        const valueB = parseInt(b.querySelector('.text-success').textContent);
+                        return valueB - valueA; // 降序排列
+                    }
+                });
+
+                const tbody = document.getElementById('course-table');
+                tbody.innerHTML = '';
+                rows.forEach(row => tbody.appendChild(row));
+
+                // 添加排序动画
+                rows.forEach((row, index) => {
+                    row.style.animation = 'none';
+                    setTimeout(() => {
+                        row.style.animation = `fadeInUp 0.3s ease-out ${index * 0.05}s forwards`;
+                    }, 10);
+                });
+            });
+        });
+
+        // 进度条动画
+        const progressBars = document.querySelectorAll('.progress-bar');
+        progressBars.forEach(bar => {
+            const originalWidth = bar.style.width;
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = originalWidth;
+            }, 300);
+        });
+
+        // 统计数据更新动画
+        function animateValue(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                element.textContent = value;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // 统计数据动画
+        const departCount = document.getElementById('depart-count');
+        const courseCount = document.getElementById('course-count');
+        const departTotal = document.getElementById('depart-total');
+        const courseTotal = document.getElementById('course-total');
+
+        if (departCount) animateValue(departCount, 0, parseInt(departCount.textContent), 1000);
+        if (courseCount) animateValue(courseCount, 0, parseInt(courseCount.textContent), 1000);
+        if (departTotal) animateValue(departTotal, 0, parseInt(departTotal.textContent), 1000);
+        if (courseTotal) animateValue(courseTotal, 0, parseInt(courseTotal.textContent), 1000);
+
+        // 交互提示
+        document.querySelectorAll('.dept-icon').forEach(icon => {
+            icon.addEventListener('mouseenter', function() {
+                this.style.transform = 'rotate(15deg) scale(1.2)';
+            });
+
+            icon.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+            });
+        });
+    });
+</script>
+{% endblock %}

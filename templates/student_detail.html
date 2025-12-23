@@ -1,0 +1,949 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ stu.sname }} - 学生详细信息 - 学生信息管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作栏 -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+        <div class="mb-3 mb-md-0">
+            <div class="d-flex align-items-center">
+                <div class="icon-container me-3">
+                    <i class="bi bi-person-badge-fill"></i>
+                </div>
+                <div>
+                    <h2 class="mb-1">{{ stu.sname }} 的详细信息</h2>
+                    <p class="text-muted mb-0">学生的完整档案和学习记录</p>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'student_edit' stu.sno %}" class="btn btn-outline-primary px-4">
+                <i class="bi bi-pencil-square me-2"></i>编辑信息
+            </a>
+            <a href="{% url 'select_course' stu.sno %}" class="btn btn-primary px-4">
+                <i class="bi bi-plus-circle me-2"></i>添加课程
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 左侧：学生基本信息 -->
+        <div class="col-lg-4 mb-4">
+            <!-- 个人信息卡片 -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-circle me-2 text-primary"></i>
+                        个人信息
+                    </h5>
+                    <div class="student-status">
+                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">
+                            <i class="bi bi-check-circle me-1"></i>在读
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="student-avatar-xl">
+                            {% if stu.sex == '男' or stu.sex == 'boy' or stu.sex == 'male' %}
+                                <i class="bi bi-person-fill"></i>
+                            {% else %}
+                                <i class="bi bi-person-fill"></i>
+                            {% endif %}
+                        </div>
+                        <h4 class="mt-3 mb-1">{{ stu.sname }}</h4>
+                        <p class="text-muted mb-0">{{ stu.sno }}</p>
+                    </div>
+
+                    <div class="student-info-grid">
+                        <div class="info-item">
+                            <div class="info-icon bg-primary bg-opacity-10 text-primary">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="text-muted small mb-1">学号</div>
+                                <div class="fw-semibold">{{ stu.sno }}</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="info-icon bg-success bg-opacity-10 text-success">
+                                <i class="bi bi-gender-ambiguous"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="text-muted small mb-1">性别</div>
+                                <div class="fw-semibold">{{ stu.get_sex_display }}</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="info-icon bg-info bg-opacity-10 text-info">
+                                <i class="bi bi-diagram-3"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="text-muted small mb-1">班级</div>
+                                <div class="fw-semibold">{{ stu.classno.classname }}</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="info-icon bg-warning bg-opacity-10 text-warning">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="text-muted small mb-1">系部</div>
+                                <div class="fw-semibold">{{ stu.classno.dno.dname }}</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="info-icon bg-secondary bg-opacity-10 text-secondary">
+                                <i class="bi bi-phone"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="text-muted small mb-1">联系电话</div>
+                                <div class="fw-semibold">{{ stu.telephone|default:"未填写" }}</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="info-icon bg-purple bg-opacity-10 text-purple">
+                                <i class="bi bi-geo-alt"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="text-muted small mb-1">籍贯</div>
+                                <div class="fw-semibold">{{ stu.native|default:"未填写" }}</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="info-icon bg-danger bg-opacity-10 text-danger">
+                                <i class="bi bi-house"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="text-muted small mb-1">家庭住址</div>
+                                <div class="fw-semibold">{{ stu.home|default:"未填写"|truncatechars:15 }}</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="info-icon bg-pink bg-opacity-10 text-pink">
+                                <i class="bi bi-calendar3"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="text-muted small mb-1">入学学期</div>
+                                <div class="fw-semibold">第 {{ stu.semester|default:"-" }} 学期</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 学术概览卡片 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart me-2 text-primary"></i>
+                        学术概览
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="academic-stats">
+                        <div class="stat-item">
+                            <div class="stat-value text-primary">{{ courses|length }}</div>
+                            <div class="stat-label">已选课程</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value text-success">{{ graded_count|default:"0" }}</div>
+                            <div class="stat-label">已录入成绩</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value text-warning">{{ total_credit|default:"0" }}</div>
+                            <div class="stat-label">总学分</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value text-info">{{ avg_grade|default:"-" }}</div>
+                            <div class="stat-label">平均成绩</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：课程与成绩信息 -->
+        <div class="col-lg-8 mb-4">
+            <!-- 课程与成绩卡片 -->
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="bi bi-journal-text me-2 text-primary"></i>
+                            课程与成绩
+                        </h5>
+                        <p class="text-muted mb-0 mt-1">学生的选课记录和成绩信息</p>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-funnel me-1"></i>筛选
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item filter-table" href="#" data-filter="all">全部课程</a></li>
+                            <li><a class="dropdown-item filter-table" href="#" data-filter="graded">已录入成绩</a></li>
+                            <li><a class="dropdown-item filter-table" href="#" data-filter="ungraded">未录入成绩</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item filter-table" href="#" data-filter="excellent">优秀课程（≥90）</a></li>
+                            <li><a class="dropdown-item filter-table" href="#" data-filter="failed">不及格课程（＜60）</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    {% if courses %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="courseTable">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">
+                                        <i class="bi bi-journal me-2"></i>课程信息
+                                    </th>
+                                    <th class="text-center">
+                                        <i class="bi bi-star me-2"></i>学分
+                                    </th>
+                                    <th class="text-center">
+                                        <i class="bi bi-award me-2"></i>成绩
+                                    </th>
+                                    <th class="text-center">
+                                        <i class="bi bi-tag me-2"></i>类型
+                                    </th>
+                                    <th class="text-center pe-4">
+                                        <i class="bi bi-gear me-2"></i>操作
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in courses %}
+                                <tr class="course-row" 
+                                    data-grade="{{ r.grade|default:0 }}" 
+                                    data-graded="{% if r.grade %}true{% else %}false{% endif %}"
+                                    data-type="{{ r.cno.type }}">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="course-icon me-3">
+                                                {% if r.cno.type == "crc" %}
+                                                <i class="bi bi-globe"></i>
+                                                {% elif r.cno.type == "bcim" %}
+                                                <i class="bi bi-layers"></i>
+                                                {% elif r.cno.type == "spc" %}
+                                                <i class="bi bi-book"></i>
+                                                {% elif r.cno.type == "ocos" %}
+                                                <i class="bi bi-gear"></i>
+                                                {% else %}
+                                                <i class="bi bi-journal-text"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">{{ r.cno.cname }}</div>
+                                                <div class="text-muted small">
+                                                    <i class="bi bi-hash me-1"></i>{{ r.cno.cno }}
+                                                    {% if r.cno.lecture %}
+                                                    <span class="ms-2">
+                                                        <i class="bi bi-clock me-1"></i>{{ r.cno.lecture }}学时
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="fw-semibold text-primary">{{ r.cno.credit|default:"-" }}</div>
+                                        <div class="text-muted small">学分</div>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if r.grade %}
+                                            {% if r.grade >= 90 %}
+                                            <div class="grade-display bg-success">
+                                                <i class="bi bi-trophy-fill me-1"></i>{{ r.grade }}
+                                            </div>
+                                            <div class="text-success small mt-1">优秀</div>
+                                            {% elif r.grade >= 80 %}
+                                            <div class="grade-display bg-primary">
+                                                <i class="bi bi-emoji-smile-fill me-1"></i>{{ r.grade }}
+                                            </div>
+                                            <div class="text-primary small mt-1">良好</div>
+                                            {% elif r.grade >= 60 %}
+                                            <div class="grade-display bg-info">
+                                                <i class="bi bi-emoji-neutral-fill me-1"></i>{{ r.grade }}
+                                            </div>
+                                            <div class="text-info small mt-1">及格</div>
+                                            {% else %}
+                                            <div class="grade-display bg-danger">
+                                                <i class="bi bi-emoji-frown-fill me-1"></i>{{ r.grade }}
+                                            </div>
+                                            <div class="text-danger small mt-1">不及格</div>
+                                            {% endif %}
+                                        {% else %}
+                                        <div class="grade-display bg-secondary bg-opacity-10 text-secondary">
+                                            <i class="bi bi-clock me-1"></i>未录入
+                                        </div>
+                                        <div class="text-muted small mt-1">待录入</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if r.cno. == "crc" %}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                                            公共课
+                                        </span>
+                                        {% elif r.cno.type == "bcim" %}
+                                        <span class="badge bg-info bg-opacity-10 text-info px-3 py-2">
+                                            专业基础课
+                                        </span>
+                                        {% elif r.cno.type == "spc" %}
+                                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">
+                                            专业课
+                                        </span>
+                                        {% elif r.cno.type == "ocos" %}
+                                        <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2">
+                                            选修课
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2">
+                                            其他
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center pe-4">
+                                        <div class="d-flex justify-content-center gap-2">
+                                            {% if r.grade %}
+                                            <a href="{% url 'update_grade' r.sno.sno r.cno.cno %}" 
+                                               class="btn btn-outline-primary btn-sm px-3 action-btn"
+                                               title="修改成绩">
+                                                <i class="bi bi-pencil-square me-1"></i>修改
+                                            </a>
+                                            {% else %}
+                                            <a href="{% url 'update_grade' r.sno.sno r.cno.cno %}" 
+                                               class="btn btn-outline-success btn-sm px-3 action-btn"
+                                               title="录入成绩">
+                                                <i class="bi bi-plus-circle me-1"></i>录入
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="empty-state">
+                            <i class="bi bi-journal-x display-1 text-muted mb-3"></i>
+                            <h5 class="text-muted mb-2">暂无选课记录</h5>
+                            <p class="text-muted mb-3">该学生尚未选择任何课程</p>
+                            <a href="{% url 'select_course' stu.sno %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-2"></i>立即添加课程
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if courses %}
+                <div class="card-footer bg-transparent border-top">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+                        <div class="mb-2 mb-md-0">
+                            <span class="text-muted">
+                                显示 <strong id="course-count">{{ courses|length }}</strong> 门课程
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="grade-summary me-3">
+                                <span class="text-muted me-2">平均成绩:</span>
+                                <span class="fw-semibold text-primary" id="average-grade">{{ avg_grade|default:"-" }}</span>
+                            </div>
+                            <div class="grade-summary">
+                                <span class="text-muted me-2">总学分:</span>
+                                <span class="fw-semibold text-success" id="total-credit">{{ total_credit|default:"0" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 图标容器 */
+    .icon-container {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.8rem;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        transition: var(--transition);
+    }
+
+    .icon-container:hover {
+        transform: rotate(-5deg) scale(1.05);
+    }
+
+    /* 学生头像 */
+    .student-avatar-xl {
+        width: 100px;
+        height: 100px;
+        border-radius: 25px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 3.5rem;
+        margin: 0 auto;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        transition: var(--transition);
+    }
+
+    .student-avatar-xl:hover {
+        transform: rotate(5deg) scale(1.1);
+    }
+
+    /* 学生信息网格 */
+    .student-info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        padding: 0.875rem;
+        background-color: #f8fafc;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .info-item:hover {
+        background-color: #f1f5f9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .info-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .info-content {
+        flex: 1;
+    }
+
+    /* 颜色主题 */
+    .bg-purple {
+        background-color: #8b5cf6 !important;
+    }
+
+    .text-purple {
+        color: #8b5cf6 !important;
+    }
+
+    .bg-pink {
+        background-color: #ec4899 !important;
+    }
+
+    .text-pink {
+        color: #ec4899 !important;
+    }
+
+    /* 学术统计 */
+    .academic-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background-color: #f8fafc;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .stat-item:hover {
+        background-color: #f1f5f9;
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    /* 课程图标 */
+    .course-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: #6366f1;
+    }
+
+    /* 成绩显示 */
+    .grade-display {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        color: white;
+        display: inline-block;
+        min-width: 80px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .grade-display:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 表格样式 */
+    .table {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.04));
+        border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+        font-weight: 600;
+        color: #334155;
+        padding: 1rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(99, 102, 241, 0.03);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    /* 空状态 */
+    .empty-state {
+        padding: 3rem 1rem;
+    }
+
+    .empty-state i {
+        opacity: 0.2;
+    }
+
+    /* 操作按钮 */
+    .action-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    /* 按钮样式 */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-outline-primary {
+        border: 2px solid #6366f1;
+        color: #6366f1;
+    }
+
+    .btn-outline-primary:hover {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-color: #6366f1;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-outline-success {
+        border: 2px solid #10b981;
+        color: #10b981;
+    }
+
+    .btn-outline-success:hover {
+        background: linear-gradient(135deg, #10b981, #059669);
+        border-color: #10b981;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-outline-secondary {
+        border: 2px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        border-radius: 8px;
+    }
+
+    /* 徽章样式 */
+    .badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        border: none;
+    }
+
+    /* 成绩摘要 */
+    .grade-summary {
+        padding: 0.5rem 1rem;
+        background-color: #f8fafc;
+        border-radius: 8px;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .icon-container {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+        }
+
+        .student-avatar-xl {
+            width: 80px;
+            height: 80px;
+            font-size: 2.8rem;
+        }
+
+        .student-info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .academic-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .table td, .table th {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+        }
+
+        .btn-sm i {
+            margin-right: 0;
+        }
+
+        .btn-sm span {
+            display: none;
+        }
+
+        .grade-display {
+            min-width: 60px;
+            padding: 6px 12px;
+            font-size: 0.875rem;
+        }
+
+        .d-flex.gap-2 {
+            gap: 0.5rem !important;
+        }
+
+        .d-flex.gap-2 .btn {
+            padding: 0.625rem 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .student-avatar-xl {
+            width: 70px;
+            height: 70px;
+            font-size: 2.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+        }
+
+        .info-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+        }
+    }
+
+    /* 动画效果 */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .course-row {
+        animation: fadeInUp 0.4s ease-out;
+        animation-fill-mode: both;
+    }
+
+    .course-row:nth-child(1) { animation-delay: 0.1s; }
+    .course-row:nth-child(2) { animation-delay: 0.15s; }
+    .course-row:nth-child(3) { animation-delay: 0.2s; }
+    .course-row:nth-child(4) { animation-delay: 0.25s; }
+    .course-row:nth-child(5) { animation-delay: 0.3s; }
+    .course-row:nth-child(6) { animation-delay: 0.35s; }
+    .course-row:nth-child(7) { animation-delay: 0.4s; }
+    .course-row:nth-child(8) { animation-delay: 0.45s; }
+    .course-row:nth-child(9) { animation-delay: 0.5s; }
+    .course-row:nth-child(10) { animation-delay: 0.55s; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 页面加载动画
+    const pageContent = document.querySelector('.container-fluid');
+    if (pageContent) {
+        pageContent.style.opacity = '0';
+        pageContent.style.transform = 'translateY(10px)';
+
+        setTimeout(() => {
+            pageContent.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            pageContent.style.opacity = '1';
+            pageContent.style.transform = 'translateY(0)';
+        }, 100);
+    }
+
+    // 课程筛选功能
+    const filterButtons = document.querySelectorAll('.filter-table');
+    const courseRows = document.querySelectorAll('.course-row');
+    
+    if (filterButtons.length && courseRows.length) {
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const filter = this.getAttribute('data-filter');
+                
+                let visibleCount = 0;
+                courseRows.forEach(row => {
+                    const isGraded = row.getAttribute('data-graded') === 'true';
+                    const grade = parseFloat(row.getAttribute('data-grade'));
+                    const courseType = row.getAttribute('data-type');
+                    
+                    let shouldShow = false;
+                    
+                    switch(filter) {
+                        case 'all':
+                            shouldShow = true;
+                            break;
+                        case 'graded':
+                            shouldShow = isGraded;
+                            break;
+                        case 'ungraded':
+                            shouldShow = !isGraded;
+                            break;
+                        case 'excellent':
+                            shouldShow = isGraded && grade >= 90;
+                            break;
+                        case 'failed':
+                            shouldShow = isGraded && grade < 60;
+                            break;
+                        default:
+                            shouldShow = true;
+                    }
+                    
+                    if (shouldShow) {
+                        row.style.display = '';
+                        visibleCount++;
+                        row.style.animation = 'fadeInUp 0.3s ease-out';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                // 更新显示数量
+                const courseCountElement = document.getElementById('course-count');
+                if (courseCountElement) {
+                    courseCountElement.textContent = visibleCount;
+                }
+            });
+        });
+    }
+
+    // 表格行悬停效果
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-3px)';
+            this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.08)';
+        });
+
+        row.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+            this.style.boxShadow = '';
+        });
+    });
+
+    // 按钮点击效果
+    document.querySelectorAll('.btn').forEach(button => {
+        button.addEventListener('mousedown', function() {
+            this.style.transform = 'scale(0.98)';
+        });
+        
+        button.addEventListener('mouseup', function() {
+            this.style.transform = '';
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+        });
+    });
+
+    // 信息项悬停效果
+    document.querySelectorAll('.info-item, .stat-item').forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-3px)';
+            this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.08)';
+        });
+
+        item.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+            this.style.boxShadow = '';
+        });
+    });
+
+    // 图标悬停效果
+    document.querySelectorAll('.course-icon, .info-icon').forEach(icon => {
+        icon.addEventListener('mouseenter', function() {
+            this.style.transform = 'rotate(15deg) scale(1.2)';
+        });
+
+        icon.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+        });
+    });
+
+    // 成绩显示悬停效果
+    document.querySelectorAll('.grade-display').forEach(grade => {
+        grade.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.05)';
+            this.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+        });
+
+        grade.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+            this.style.boxShadow = '';
+        });
+    });
+
+    // 头像悬停效果
+    const studentAvatar = document.querySelector('.student-avatar-xl');
+    if (studentAvatar) {
+        studentAvatar.addEventListener('mouseenter', function() {
+            this.style.transform = 'rotate(5deg) scale(1.1)';
+        });
+
+        studentAvatar.addEventListener('mouseleave', function() {
+            this.style.transform = 'rotate(0) scale(1)';
+        });
+    }
+
+    // 操作按钮点击效果
+    document.querySelectorAll('.action-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            // 防止重复点击
+            if (this.classList.contains('clicked')) {
+                e.preventDefault();
+                return;
+            }
+            
+            // 添加点击状态
+            this.classList.add('clicked');
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>处理中...';
+            
+            // 5秒后恢复（防止卡死）
+            setTimeout(() => {
+                if (this.classList.contains('clicked')) {
+                    this.classList.remove('clicked');
+                    if (this.title === '修改成绩') {
+                        this.innerHTML = '<i class="bi bi-pencil-square me-1"></i>修改';
+                    } else {
+                        this.innerHTML = '<i class="bi bi-plus-circle me-1"></i>录入';
+                    }
+                }
+            }, 5000);
+        });
+    });
+});
+</script>
+{% endblock %}

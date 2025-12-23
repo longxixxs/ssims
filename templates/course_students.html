@@ -1,0 +1,631 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.cname }} - 选课学生 - 学生信息管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 课程信息卡片 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                        <div class="course-icon-large me-4">
+                            <i class="bi bi-journal-text"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-1">{{ course.cname }}</h3>
+                            <div class="d-flex flex-wrap gap-3 mt-2">
+                                <div class="course-info-item">
+                                    <i class="bi bi-hash text-primary me-1"></i>
+                                    <span class="text-muted">课程编号:</span>
+                                    <strong class="ms-1">{{ course.cno }}</strong>
+                                </div>
+                                <div class="course-info-item">
+                                    <i class="bi bi-tag text-primary me-1"></i>
+                                    <span class="text-muted">课程类型:</span>
+                                    <strong class="ms-1">{{ course.get_type_display }}</strong>
+                                </div>
+                                <div class="course-info-item">
+                                    <i class="bi bi-star text-primary me-1"></i>
+                                    <span class="text-muted">学分:</span>
+                                    <strong class="ms-1">{{ course.credit|default:"0.0" }}</strong>
+                                </div>
+                                <div class="course-info-item">
+                                    <i class="bi bi-clock text-primary me-1"></i>
+                                    <span class="text-muted">学时:</span>
+                                    <strong class="ms-1">{{ course.lecture|default:"-" }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="d-flex flex-column align-items-md-end">
+                        <div class="mb-2">
+                            <span class="badge bg-primary px-3 py-2">
+                                <i class="bi bi-people me-1"></i>
+                                选课学生: <strong>{{ records|length }}</strong> 人
+                            </span>
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <a href="/courses/" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>返回课程列表
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 学生列表卡片 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0">
+                    <i class="bi bi-people me-2 text-primary"></i>
+                    选课学生列表
+                </h5>
+                <p class="text-muted mb-0 mt-1">
+                    共有 <span class="fw-bold text-primary">{{ records|length }}</span> 名学生选修此课程
+                </p>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="input-group input-group-sm" style="width: 200px;">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="studentSearch" class="form-control" placeholder="搜索学生...">
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="studentsTable">
+                <thead>
+                    <tr>
+                        <th width="15%">
+                            <i class="bi bi-person-badge me-1"></i>学号
+                        </th>
+                        <th width="20%">
+                            <i class="bi bi-person-circle me-1"></i>学生姓名
+                        </th>
+                        <th width="25%">
+                            <i class="bi bi-diagram-3 me-1"></i>班级信息
+                        </th>
+                        <th width="20%">
+                            <i class="bi bi-building me-1"></i>所属系部
+                        </th>
+                        <th width="20%" class="text-center">
+                            <i class="bi bi-award me-1"></i>课程成绩
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in records %}
+                    <tr class="student-row">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="student-icon me-3">
+                                    <i class="bi bi-person text-primary"></i>
+                                </div>
+                                <div>
+                                    <strong class="text-primary">{{ r.sno.sno }}</strong>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ r.sno.sname }}</div>
+                            <div class="text-muted small mt-1">
+                                <i class="bi bi-gender-ambiguous me-1"></i>{{ r.sno.get_sex_display }}
+                                <span class="mx-2">|</span>
+                                <i class="bi bi-calendar me-1"></i>年龄: {{ r.sno.age|default:"-" }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="class-badge me-3">
+                                    <span class="badge bg-info bg-opacity-10 text-info">
+                                        <i class="bi bi-diagram-2"></i>
+                                    </span>
+                                </div>
+                                <div>
+                                    <div class="fw-medium">{{ r.sno.classno.classname }}</div>
+                                    <div class="text-muted small">班级号: {{ r.sno.classno.classno }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="dept-badge me-3">
+                                    <span class="badge bg-warning bg-opacity-10 text-warning">
+                                        <i class="bi bi-building"></i>
+                                    </span>
+                                </div>
+                                <div>
+                                    <div class="fw-medium">{{ r.sno.classno.dno.dname }}</div>
+                                    <div class="text-muted small">系部号: {{ r.sno.classno.dno.dno }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            {% if r.grade %}
+                            <div class="grade-display">
+                                {% if r.grade >= 90 %}
+                                <span class="badge bg-success grade-badge">
+                                    <i class="bi bi-trophy me-1"></i>{{ r.grade }}分
+                                </span>
+                                {% elif r.grade >= 80 %}
+                                <span class="badge bg-primary grade-badge">
+                                    <i class="bi bi-emoji-smile me-1"></i>{{ r.grade }}分
+                                </span>
+                                {% elif r.grade >= 60 %}
+                                <span class="badge bg-info grade-badge">
+                                    <i class="bi bi-emoji-neutral me-1"></i>{{ r.grade }}分
+                                </span>
+                                {% else %}
+                                <span class="badge bg-danger grade-badge">
+                                    <i class="bi bi-emoji-frown me-1"></i>{{ r.grade }}分
+                                </span>
+                                {% endif %}
+                                <div class="progress mt-2 mx-auto" style="width: 80px; height: 6px;">
+                                    <div class="progress-bar 
+                                        {% if r.grade >= 90 %}bg-success
+                                        {% elif r.grade >= 80 %}bg-primary
+                                        {% elif r.grade >= 60 %}bg-info
+                                        {% else %}bg-danger{% endif %}" 
+                                        style="width: {{ r.grade }}%;">
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="grade-placeholder">
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">
+                                    <i class="bi bi-clock me-1"></i>未录入
+                                </span>
+                                <div class="mt-2">
+                                    <a href="/grade/{{ r.sno.sno }}/{{ course.cno }}/" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil me-1"></i>录入成绩
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <div class="empty-state">
+                                <i class="bi bi-person-x display-1 text-muted mb-3"></i>
+                                <h4 class="text-muted mb-2">暂无选课学生</h4>
+                                <p class="text-muted mb-3">该课程目前还没有学生选课</p>
+                                <a href="/courses/" class="btn btn-outline-secondary me-2">
+                                    <i class="bi bi-arrow-left me-2"></i>返回课程列表
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+<!-- 成绩统计 -->
+{% if records %}
+<div class="card-footer bg-transparent border-top">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="d-flex flex-wrap align-items-center">
+                <span class="text-muted me-3">成绩统计:</span>
+                <div class="d-flex gap-2">
+                    <div class="grade-stat">
+                        <span class="badge bg-success">优秀(≥90)</span>
+                        <span class="ms-1 fw-semibold">{{ excellent }}</span>
+                    </div>
+                    <div class="grade-stat">
+                        <span class="badge bg-primary">良好(80-89)</span>
+                        <span class="ms-1 fw-semibold">{{ good }}</span>
+                    </div>
+                    <div class="grade-stat">
+                        <span class="badge bg-info">及格(60-79)</span>
+                        <span class="ms-1 fw-semibold">{{ passed }}</span>
+                    </div>
+                    <div class="grade-stat">
+                        <span class="badge bg-danger">不及格(&lt;60)</span>
+                        <span class="ms-1 fw-semibold">{{ failed }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 text-md-end mt-2 mt-md-0">
+            <div class="text-muted">
+                <i class="bi bi-info-circle me-1"></i>
+                平均成绩:
+                <span class="fw-bold text-primary">
+                    {% if avg %}
+                        {{ avg|floatformat:1 }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </span> 分
+                <span class="mx-2">|</span>
+                已录入成绩:
+                <span class="fw-bold text-primary">{{ graded }}</span>/{{ records|length }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+    </div>
+</div>
+
+<style>
+    /* 课程信息卡片 */
+    .course-icon-large {
+        width: 70px;
+        height: 70px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+    }
+    
+    .course-info-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.95rem;
+    }
+    
+    /* 表格样式 */
+    .table {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .table thead th {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.04));
+        border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+        font-weight: 600;
+        color: #334155;
+        padding: 1rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+    
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+        background-color: rgba(99, 102, 241, 0.03);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* 学生图标 */
+    .student-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+    
+    /* 班级和系部徽章 */
+    .class-badge .badge, .dept-badge .badge {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+    
+    /* 成绩显示 */
+    .grade-badge {
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        min-width: 80px;
+        display: inline-block;
+    }
+    
+    .progress {
+        border-radius: 3px;
+        background-color: #f1f3f5;
+    }
+    
+    .progress-bar {
+        border-radius: 3px;
+        transition: width 1s ease;
+    }
+    
+    .grade-placeholder .btn {
+        padding: 4px 10px;
+        font-size: 0.85rem;
+        border-radius: 6px;
+    }
+    
+    /* 成绩统计 */
+    .grade-stat {
+        display: flex;
+        align-items: center;
+        background-color: #f8f9fa;
+        padding: 4px 8px;
+        border-radius: 6px;
+    }
+    
+    /* 空状态 */
+    .empty-state {
+        padding: 3rem 1rem;
+    }
+    
+    .empty-state i {
+        opacity: 0.3;
+    }
+    
+    /* 按钮样式 */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+    
+    .btn-outline-secondary {
+        border: 2px solid #e2e8f0;
+        color: #64748b;
+    }
+    
+    .btn-outline-secondary:hover {
+        background-color: #f8f9fa;
+        border-color: #cbd5e1;
+        color: #475569;
+        transform: translateY(-2px);
+    }
+    
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+    }
+    
+    /* 搜索框 */
+    .input-group-sm .form-control {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    .input-group-sm .input-group-text {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .course-info-item {
+            margin-bottom: 0.5rem;
+        }
+        
+        .card-header .d-flex {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .card-header .input-group {
+            margin-top: 1rem;
+            width: 100% !important;
+        }
+        
+        .table td, .table th {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .grade-display, .grade-placeholder {
+            text-align: left !important;
+        }
+        
+        .progress {
+            width: 100% !important;
+        }
+        
+        .card-footer .row {
+            flex-direction: column;
+        }
+        
+        .card-footer .text-md-end {
+            text-align: left !important;
+            margin-top: 1rem;
+        }
+    }
+    
+    /* 动画效果 */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .student-row {
+        animation: fadeInUp 0.4s ease-out;
+        animation-fill-mode: both;
+    }
+    
+    .student-row:nth-child(1) { animation-delay: 0.1s; }
+    .student-row:nth-child(2) { animation-delay: 0.15s; }
+    .student-row:nth-child(3) { animation-delay: 0.2s; }
+    .student-row:nth-child(4) { animation-delay: 0.25s; }
+    .student-row:nth-child(5) { animation-delay: 0.3s; }
+    .student-row:nth-child(6) { animation-delay: 0.35s; }
+    .student-row:nth-child(7) { animation-delay: 0.4s; }
+    .student-row:nth-child(8) { animation-delay: 0.45s; }
+    .student-row:nth-child(9) { animation-delay: 0.5s; }
+    .student-row:nth-child(10) { animation-delay: 0.55s; }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 实时搜索功能
+        const searchInput = document.getElementById('studentSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#studentsTable tbody tr');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                // 重新计算成绩统计
+                calculateGradeStats();
+            });
+        }
+        
+        // 计算成绩统计
+        function calculateGradeStats() {
+            const records = document.querySelectorAll('#studentsTable tbody tr:not([style*="display: none"])');
+            let excellent = 0, good = 0, pass = 0, fail = 0, graded = 0;
+            let totalGrade = 0;
+            
+            records.forEach(row => {
+                const gradeBadge = row.querySelector('.grade-badge');
+                if (gradeBadge) {
+                    graded++;
+                    const gradeText = gradeBadge.textContent;
+                    const gradeMatch = gradeText.match(/(\d+)分/);
+                    
+                    if (gradeMatch) {
+                        const grade = parseInt(gradeMatch[1]);
+                        totalGrade += grade;
+                        
+                        if (grade >= 90) excellent++;
+                        else if (grade >= 80) good++;
+                        else if (grade >= 60) pass++;
+                        else fail++;
+                    }
+                }
+            });
+            
+            // 更新统计显示
+            document.getElementById('excellentCount').textContent = excellent;
+            document.getElementById('goodCount').textContent = good;
+            document.getElementById('passCount').textContent = pass;
+            document.getElementById('failCount').textContent = fail;
+            document.getElementById('gradedCount').textContent = graded;
+            
+            // 计算平均分
+            if (graded > 0) {
+                const avg = Math.round(totalGrade / graded * 10) / 10;
+                document.getElementById('avgGrade').textContent = avg;
+            } else {
+                document.getElementById('avgGrade').textContent = '-';
+            }
+        }
+        
+        // 初始化成绩统计
+        if (document.querySelectorAll('#studentsTable tbody tr').length > 0) {
+            calculateGradeStats();
+        }
+        
+        // 表格行悬停效果
+        const tableRows = document.querySelectorAll('.student-row');
+        tableRows.forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+                this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.08)';
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+        
+        // 成绩徽章动画
+        const gradeBadges = document.querySelectorAll('.grade-badge');
+        gradeBadges.forEach(badge => {
+            badge.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.1)';
+            });
+            
+            badge.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+            });
+        });
+        
+        // 录入成绩按钮动画
+        const gradeBtns = document.querySelectorAll('.grade-placeholder .btn');
+        gradeBtns.forEach(btn => {
+            btn.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.2)';
+            });
+            
+            btn.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+        
+        // 页面加载动画
+        const pageContent = document.querySelector('.container-fluid');
+        pageContent.style.opacity = '0';
+        pageContent.style.transform = 'translateY(10px)';
+        
+        setTimeout(() => {
+            pageContent.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            pageContent.style.opacity = '1';
+            pageContent.style.transform = 'translateY(0)';
+        }, 100);
+        
+        // 统计卡片动画
+        const statCards = document.querySelectorAll('.card');
+        statCards.forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+        });
+    });
+</script>
+{% endblock %}

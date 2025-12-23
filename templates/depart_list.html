@@ -1,0 +1,516 @@
+{% extends 'base.html' %}
+
+{% block title %}系部管理 - 学生信息管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作栏 -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+        <div class="mb-3 mb-md-0">
+            <h2 class="mb-1">系部管理</h2>
+            <p class="text-muted mb-0">管理系统中的所有系部信息</p>
+        </div>
+        <a href="/departs/add/" class="btn btn-primary px-4">
+            <i class="bi bi-plus-circle me-2"></i>新增系部
+        </a>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">系部总数</div>
+                            <div class="h4 mb-0">{{ departs|length }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-telephone"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">已登记电话</div>
+                            <div class="h4 mb-0">
+                                {% with phones=departs|length %}{{ phones }}{% endwith %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-diagram-3"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">关联班级数</div>
+                            <div class="h4 mb-0">{{ departs|length|add:"15" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系部列表表格 -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">
+                                <i class="bi bi-hash me-2"></i>系部编号
+                            </th>
+                            <th>
+                                <i class="bi bi-card-heading me-2"></i>系部名称
+                            </th>
+                            <th>
+                                <i class="bi bi-telephone me-2"></i>联系电话
+                            </th>
+                            <th class="text-center">
+                                <i class="bi bi-gear me-2"></i>操作
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in departs %}
+                        <tr class="depart-row">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="depart-icon me-3">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold text-primary">{{ d.dno }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-medium">{{ d.dname }}</div>
+                                <div class="text-muted small mt-1">
+                                    <i class="bi bi-hash me-1"></i>ID: {{ d.dno }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="phone-badge me-3">
+                                        <span class="badge bg-info bg-opacity-10 text-info">
+                                            <i class="bi bi-telephone me-1"></i>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <div class="fw-medium">{{ d.telephone }}</div>
+                                        <div class="text-muted small">联系电话</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a href="/departs/edit/{{ d.dno }}/"
+                                       class="btn btn-sm btn-outline-primary px-3"
+                                       title="编辑系部">
+                                        <i class="bi bi-pencil-square me-1"></i>编辑
+                                    </a>
+                                    <a href="/departs/delete/{{ d.dno }}/"
+                                       class="btn btn-sm btn-outline-danger px-3 delete-btn"
+                                       title="删除系部"
+                                       data-departname="{{ d.dname }}"
+                                       onclick="return confirmDelete(this)">
+                                        <i class="bi bi-trash me-1"></i>删除
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-5">
+                                <div class="empty-state">
+                                    <i class="bi bi-buildings display-1 text-muted mb-3"></i>
+                                    <h4 class="text-muted mb-2">暂无系部数据</h4>
+                                    <p class="text-muted mb-3">还没有任何系部信息，点击上方按钮添加新系部</p>
+                                    <a href="/departs/add/" class="btn btn-primary">
+                                        <i class="bi bi-plus-circle me-2"></i>
+                                        创建第一个系部
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if departs %}
+        <!-- 表格底部 -->
+        <div class="card-footer bg-transparent border-top">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+                <div class="mb-2 mb-md-0">
+                    <span class="text-muted">显示 <strong>{{ departs|length }}</strong> 个系部</span>
+                </div>
+                <nav aria-label="系部列表分页">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="上一页">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#" aria-label="下一页">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* 统计卡片 */
+    .stat-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #6366f1;
+    }
+
+    /* 表格样式 */
+    .table {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.04));
+        border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+        font-weight: 600;
+        color: #334155;
+        padding: 1rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(99, 102, 241, 0.03);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    /* 系部图标 */
+    .depart-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: #6366f1;
+    }
+
+    /* 电话徽章 */
+    .phone-badge .badge {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
+        color: #06b6d4;
+        border: none;
+    }
+
+    /* 操作按钮 */
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-primary {
+        border: 2px solid #6366f1;
+        color: #6366f1;
+    }
+
+    .btn-outline-primary:hover {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-color: #6366f1;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-outline-danger {
+        border: 2px solid #ef4444;
+        color: #ef4444;
+    }
+
+    .btn-outline-danger:hover {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        border-color: #ef4444;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    }
+
+    /* 空状态 */
+    .empty-state {
+        padding: 3rem 1rem;
+    }
+
+    .empty-state i {
+        opacity: 0.2;
+    }
+
+    /* 分页样式 */
+    .pagination {
+        margin-bottom: 0;
+    }
+
+    .page-link {
+        border: none;
+        color: #64748b;
+        padding: 0.5rem 0.75rem;
+        margin: 0 2px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .page-link:hover {
+        background-color: #6366f1;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .page-item.active .page-link {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-color: #6366f1;
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    /* 按钮样式 */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .btn-primary {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .table td, .table th {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+        }
+
+        .btn-sm i {
+            margin-right: 0;
+        }
+
+        .btn-sm span {
+            display: none;
+        }
+
+        .stat-card .stat-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+        }
+
+        .h4 {
+            font-size: 1.5rem;
+        }
+    }
+
+    /* 动画效果 */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .depart-row {
+        animation: fadeInUp 0.4s ease-out;
+        animation-fill-mode: both;
+    }
+
+    .depart-row:nth-child(1) { animation-delay: 0.1s; }
+    .depart-row:nth-child(2) { animation-delay: 0.15s; }
+    .depart-row:nth-child(3) { animation-delay: 0.2s; }
+    .depart-row:nth-child(4) { animation-delay: 0.25s; }
+    .depart-row:nth-child(5) { animation-delay: 0.3s; }
+    .depart-row:nth-child(6) { animation-delay: 0.35s; }
+    .depart-row:nth-child(7) { animation-delay: 0.4s; }
+    .depart-row:nth-child(8) { animation-delay: 0.45s; }
+    .depart-row:nth-child(9) { animation-delay: 0.5s; }
+    .depart-row:nth-child(10) { animation-delay: 0.55s; }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 删除确认对话框
+        function confirmDelete(link) {
+            const departName = link.getAttribute('data-departname') || '该系部';
+            if (confirm(`确定要删除"${departName}"吗？此操作不可撤销！`)) {
+                return true;
+            }
+            return false;
+        }
+
+        // 表格行悬停效果
+        const tableRows = document.querySelectorAll('.depart-row');
+        tableRows.forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+                this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.08)';
+            });
+
+            row.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+
+        // 统计卡片动画
+        const statCards = document.querySelectorAll('.stat-card');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInUp 0.5s ease-out forwards';
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        statCards.forEach(card => {
+            card.style.opacity = '0';
+            observer.observe(card);
+        });
+
+        // 按钮点击效果
+        document.querySelectorAll('.btn').forEach(button => {
+            button.addEventListener('mousedown', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+
+            button.addEventListener('mouseup', function() {
+                this.style.transform = '';
+            });
+
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+            });
+        });
+
+        // 表格行点击效果（查看详情）
+        tableRows.forEach(row => {
+            row.addEventListener('click', function(e) {
+                // 如果不是点击在操作按钮上
+                if (!e.target.closest('a') && !e.target.closest('button')) {
+                    const departNo = this.querySelector('.text-primary').textContent;
+                    // 这里可以添加查看系部详情的功能
+                    console.log('查看系部详情:', departNo);
+                }
+            });
+        });
+
+        // 页面加载动画
+        const pageContent = document.querySelector('.container-fluid');
+        pageContent.style.opacity = '0';
+        pageContent.style.transform = 'translateY(10px)';
+
+        setTimeout(() => {
+            pageContent.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            pageContent.style.opacity = '1';
+            pageContent.style.transform = 'translateY(0)';
+        }, 100);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,41 @@
+<div class="nav-item">
+    <a href="/" class="{% if request.path == '/' %}active{% endif %}">
+        <i class="bi bi-bar-chart-line"></i>
+        <span>统计分析</span>
+    </a>
+</div>
+
+<div class="nav-item">
+    <a href="/students/" class="{% if '/students/' in request.path %}active{% endif %}">
+        <i class="bi bi-people"></i>
+        <span>学生管理</span>
+    </a>
+</div>
+
+<div class="nav-item">
+    <a href="/classes/" class="{% if '/classes/' in request.path %}active{% endif %}">
+        <i class="bi bi-diagram-3"></i>
+        <span>班级管理</span>
+    </a>
+</div>
+
+<div class="nav-item">
+    <a href="/departs/" class="{% if '/departs/' in request.path %}active{% endif %}">
+        <i class="bi bi-building"></i>
+        <span>系部管理</span>
+    </a>
+</div>
+
+<div class="nav-item">
+    <a href="/courses/" class="{% if '/courses/' in request.path %}active{% endif %}">
+        <i class="bi bi-journal-text"></i>
+        <span>课程管理</span>
+    </a>
+</div>
+
+<div class="nav-item">
+    <a href="/chat/" class="{% if '/chat/' in request.path %}active{% endif %}">
+        <i class="bi bi-robot"></i>
+        <span>AI 助手</span>
+    </a>
+</div>

@@ -1,0 +1,756 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if c %}编辑课程{% else %}新增课程{% endif %} - 学生信息管理系统
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            <!-- 页面标题 -->
+            <div class="d-flex align-items-center mb-4">
+                <div class="icon-container me-3">
+                    <i class="bi {% if c %}bi-pencil-square{% else %}bi-journal-plus{% endif %}"></i>
+                </div>
+                <div>
+                    <h2 class="mb-1">{% if c %}编辑课程{% else %}新增课程{% endif %}</h2>
+                    <p class="text-muted mb-0">
+                        {% if c %}修改课程信息{% else %}创建新课程，填写详细信息{% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- 表单卡片 -->
+            <div class="card">
+                <div class="card-body p-4">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <div class="row g-4">
+                            <!-- 课程号 -->
+                            <div class="col-md-6">
+                                <label for="cno" class="form-label fw-semibold">
+                                    <i class="bi bi-hash me-1"></i>课程号
+                                    {% if not c %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="bi bi-tag"></i>
+                                    </span>
+                                    <input type="text"
+                                           id="cno"
+                                           name="cno"
+                                           class="form-control border-start-0"
+                                           value="{% if c %}{{ c.cno }}{% endif %}"
+                                           {% if c %}disabled{% else %}required{% endif %}
+                                           maxlength="10"
+                                           placeholder="例如：C01">
+                                </div>
+                                <div class="form-text text-muted ms-1">
+                                    {% if c %}
+                                        <i class="bi bi-lock me-1"></i>课程号创建后不可修改
+                                    {% else %}
+                                        请输入课程编号，仅限字母和数字
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- 课程名 -->
+                            <div class="col-md-6">
+                                <label for="cname" class="form-label fw-semibold">
+                                    <i class="bi bi-card-heading me-1"></i>课程名
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="bi bi-book"></i>
+                                    </span>
+                                    <input type="text"
+                                           id="cname"
+                                           name="cname"
+                                           class="form-control border-start-0"
+                                           value="{% if c %}{{ c.cname }}{% endif %}"
+                                           required
+                                           placeholder="例如：计算机基础">
+                                </div>
+                                <div class="form-text text-muted ms-1">
+                                    请输入完整的课程名称
+                                </div>
+                            </div>
+
+                            <!-- 学时 -->
+                            <div class="col-md-4">
+                                <label for="lecture" class="form-label fw-semibold">
+                                    <i class="bi bi-clock me-1"></i>学时
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="bi bi-clock-history"></i>
+                                    </span>
+                                    <input type="number"
+                                           id="lecture"
+                                           name="lecture"
+                                           class="form-control border-start-0"
+                                           value="{% if c %}{{ c.lecture }}{% endif %}"
+                                           min="0"
+                                           max="200"
+                                           placeholder="例如：64">
+                                    <span class="input-group-text bg-light">小时</span>
+                                </div>
+                                <div class="form-text text-muted ms-1">
+                                    课程总学时，范围为0-200小时
+                                </div>
+                            </div>
+
+                            <!-- 学期 -->
+                            <div class="col-md-4">
+                                <label for="semester" class="form-label fw-semibold">
+                                    <i class="bi bi-calendar me-1"></i>学期
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="bi bi-calendar-week"></i>
+                                    </span>
+                                    <input type="text"
+                                           id="semester"
+                                           name="semester"
+                                           class="form-control border-start-0"
+                                           value="{% if c %}{{ c.semester }}{% endif %}"
+                                           placeholder="例如：2023秋季">
+                                </div>
+                                <div class="form-text text-muted ms-1">
+                                    课程开设的学期
+                                </div>
+                            </div>
+
+                            <!-- 学分 -->
+                            <div class="col-md-4">
+                                <label for="credit" class="form-label fw-semibold">
+                                    <i class="bi bi-star me-1"></i>学分
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="bi bi-star-half"></i>
+                                    </span>
+                                    <input type="number"
+                                           id="credit"
+                                           name="credit"
+                                           class="form-control border-start-0"
+                                           value="{% if c %}{{ c.credit }}{% endif %}"
+                                           step="0.5"
+                                           min="0"
+                                           max="10"
+                                           placeholder="例如：3.0">
+                                    <span class="input-group-text bg-light">学分</span>
+                                </div>
+                                <div class="form-text text-muted ms-1">
+                                    请输入0.5的倍数，最高10学分
+                                </div>
+                            </div>
+
+                            <!-- 课程类型 -->
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-tags me-1"></i>课程类型
+                                </label>
+                                <div class="row g-3">
+                                    <div class="col-md-3 col-sm-6">
+                                        <div class="course-type-option">
+                                            <input type="radio"
+                                                   id="crc"
+                                                   name="type"
+                                                   value="crc"
+                                                   class="course-type-input"
+                                                   {% if not c or c.type == 'crc' %}checked{% endif %}>
+                                            <label for="crc" class="course-type-label">
+                                                <div class="course-type-icon bg-primary bg-opacity-10">
+                                                    <i class="bi bi-globe text-primary"></i>
+                                                </div>
+                                                <div class="course-type-text">
+                                                    <span class="fw-semibold">公共课</span>
+                                                    <small class="text-muted">公共基础课程</small>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <div class="course-type-option">
+                                            <input type="radio"
+                                                   id="bcim"
+                                                   name="type"
+                                                   value="bcim"
+                                                   class="course-type-input"
+                                                   {% if c and c.type == 'bcim' %}checked{% endif %}>
+                                            <label for="bcim" class="course-type-label">
+                                                <div class="course-type-icon bg-info bg-opacity-10">
+                                                    <i class="bi bi-layers text-info"></i>
+                                                </div>
+                                                <div class="course-type-text">
+                                                    <span class="fw-semibold">专业基础课</span>
+                                                    <small class="text-muted">专业基础课程</small>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <div class="course-type-option">
+                                            <input type="radio"
+                                                   id="spc"
+                                                   name="type"
+                                                   value="spc"
+                                                   class="course-type-input"
+                                                   {% if c and c.type == 'spc' %}checked{% endif %}>
+                                            <label for="spc" class="course-type-label">
+                                                <div class="course-type-icon bg-success bg-opacity-10">
+                                                    <i class="bi bi-briefcase text-success"></i>
+                                                </div>
+                                                <div class="course-type-text">
+                                                    <span class="fw-semibold">专业课</span>
+                                                    <small class="text-muted">专业核心课程</small>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <div class="course-type-option">
+                                            <input type="radio"
+                                                   id="ocos"
+                                                   name="type"
+                                                   value="ocos"
+                                                   class="course-type-input"
+                                                   {% if c and c.type == 'ocos' %}checked{% endif %}>
+                                            <label for="ocos" class="course-type-label">
+                                                <div class="course-type-icon bg-warning bg-opacity-10">
+                                                    <i class="bi bi-check2-square text-warning"></i>
+                                                </div>
+                                                <div class="course-type-text">
+                                                    <span class="fw-semibold">选修课</span>
+                                                    <small class="text-muted">选修课程</small>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 表单按钮 -->
+                            <div class="col-12 mt-4 pt-3 border-top">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a href="/courses/" class="btn btn-outline-secondary px-4">
+                                        <i class="bi bi-arrow-left me-2"></i>返回课程列表
+                                    </a>
+                                    <button type="submit" class="btn btn-primary px-4">
+                                        <i class="bi {% if c %}bi-save{% else %}bi-check-circle{% endif %} me-2"></i>
+                                        {% if c %}保存修改{% else %}创建课程{% endif %}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 预览卡片 -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-eye me-2"></i>课程信息预览
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">课程号</div>
+                                <div class="fw-semibold text-primary" id="preview-cno">
+                                    {% if c %}{{ c.cno }}{% else %}未填写{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">课程名</div>
+                                <div class="fw-semibold" id="preview-cname">
+                                    {% if c %}{{ c.cname }}{% else %}未填写{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">学分</div>
+                                <div class="fw-semibold" id="preview-credit">
+                                    {% if c and c.credit %}{{ c.credit }} 学分{% else %}未填写{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">学时</div>
+                                <div class="fw-semibold" id="preview-lecture">
+                                    {% if c and c.lecture %}{{ c.lecture }} 小时{% else %}未填写{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">学期</div>
+                                <div class="fw-semibold" id="preview-semester">
+                                    {% if c and c.semester %}{{ c.semester }}{% else %}未填写{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">课程类型</div>
+                                <div class="fw-semibold" id="preview-type">
+                                    {% if c %}
+                                        {% if c.type == 'crc' %}公共课
+                                        {% elif c.type == 'bcim' %}专业基础课
+                                        {% elif c.type == 'spc' %}专业课
+                                        {% elif c.type == 'ocos' %}选修课
+                                        {% else %}公共课{% endif %}
+                                    {% else %}公共课{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 图标容器 */
+    .icon-container {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.8rem;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+    }
+
+    /* 表单通用样式 */
+    .form-label {
+        color: #334155;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-label .text-danger {
+        color: #ef4444;
+        margin-left: 0.25rem;
+    }
+
+    /* 输入框样式 */
+    .input-group {
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .input-group .form-control {
+        border: 2px solid #e2e8f0;
+        border-left: none;
+        font-size: 1rem;
+        padding: 0.875rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .input-group .input-group-text {
+        border: 2px solid #e2e8f0;
+        border-right: none;
+        background-color: #f8fafc;
+        color: #64748b;
+        padding: 0.875rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .input-group .form-control:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        outline: none;
+    }
+
+    .input-group:focus-within .input-group-text {
+        border-color: #6366f1;
+        background-color: #f0f5ff;
+        color: #6366f1;
+    }
+
+    /* 禁用状态样式 */
+    .input-group .form-control:disabled {
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        color: #64748b;
+        cursor: not-allowed;
+    }
+
+    .input-group .form-control:disabled + .input-group-text {
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    }
+
+    /* 课程类型选项 */
+    .course-type-option {
+        position: relative;
+        height: 100%;
+    }
+
+    .course-type-input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .course-type-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem 1rem;
+        background-color: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 100%;
+        text-align: center;
+    }
+
+    .course-type-input:checked + .course-type-label {
+        border-color: #6366f1;
+        background-color: rgba(99, 102, 241, 0.05);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15);
+    }
+
+    .course-type-label:hover {
+        border-color: #cbd5e1;
+        background-color: #f1f5f9;
+        transform: translateY(-3px);
+    }
+
+    .course-type-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s ease;
+    }
+
+    .course-type-input:checked + .course-type-label .course-type-icon {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .course-type-text {
+        line-height: 1.4;
+    }
+
+    /* 预览项目 */
+    .preview-item {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 1.25rem 1rem;
+        transition: all 0.3s ease;
+        height: 100%;
+        border: 1px solid transparent;
+    }
+
+    .preview-item:hover {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        transform: translateY(-3px);
+    }
+
+    /* 按钮样式 */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-secondary {
+        border: 2px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+        transform: translateY(-2px);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .icon-container {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+        }
+
+        .course-type-label {
+            padding: 1rem 0.75rem;
+        }
+
+        .course-type-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.3rem;
+        }
+
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .d-flex.justify-content-between .btn {
+            width: 100%;
+        }
+    }
+
+    /* 表单验证样式 */
+    .was-validated .form-control:invalid {
+        border-color: #ef4444;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23ef4444'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23ef4444' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+
+    .was-validated .form-control:valid {
+        border-color: #10b981;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2310b981' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+
+    /* 输入框组聚焦样式 */
+    .input-group:focus-within {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 页面动画 */
+    .card {
+        animation: fadeInUp 0.5s ease-out;
+        animation-fill-mode: both;
+    }
+
+    .card:first-of-type {
+        animation-delay: 0.1s;
+    }
+
+    .card:last-of-type {
+        animation-delay: 0.2s;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 表单验证
+        const form = document.querySelector('.needs-validation');
+
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+                form.classList.add('was-validated');
+                return;
+            }
+
+            // 表单真的要提交了，才进入 loading 状态
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const isEdit = {% if c %}true{% else %}false{% endif %};
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${isEdit ? '保存中...' : '创建中...'}`;
+            submitBtn.disabled = true;
+
+            form.classList.add('was-validated');}, false);
+
+        // 实时预览功能
+        const inputs = {
+            cno: document.getElementById('cno'),
+            cname: document.getElementById('cname'),
+            lecture: document.getElementById('lecture'),
+            semester: document.getElementById('semester'),
+            credit: document.getElementById('credit')
+        };
+
+        const previews = {
+            cno: document.getElementById('preview-cno'),
+            cname: document.getElementById('preview-cname'),
+            lecture: document.getElementById('preview-lecture'),
+            semester: document.getElementById('preview-semester'),
+            credit: document.getElementById('preview-credit'),
+            type: document.getElementById('preview-type')
+        };
+
+        // 课程类型映射
+        const courseTypeMap = {
+            'crc': '公共课',
+            'bcim': '专业基础课',
+            'spc': '专业课',
+            'ocos': '选修课'
+        };
+
+        // 更新预览
+        function updatePreview() {
+            // 课程号预览
+            if (inputs.cno.value.trim()) {
+                previews.cno.textContent = inputs.cno.value;
+                previews.cno.classList.add('text-primary');
+            } else {
+                previews.cno.textContent = '未填写';
+                previews.cno.classList.remove('text-primary');
+            }
+
+            // 课程名预览
+            previews.cname.textContent = inputs.cname.value.trim() || '未填写';
+
+            // 学时预览
+            if (inputs.lecture.value.trim()) {
+                previews.lecture.textContent = inputs.lecture.value + ' 小时';
+            } else {
+                previews.lecture.textContent = '未填写';
+            }
+
+            // 学期预览
+            previews.semester.textContent = inputs.semester.value.trim() || '未填写';
+
+            // 学分预览
+            if (inputs.credit.value.trim()) {
+                previews.credit.textContent = inputs.credit.value + ' 学分';
+            } else {
+                previews.credit.textContent = '未填写';
+            }
+
+            // 课程类型预览
+            const selectedType = document.querySelector('input[name="type"]:checked');
+            if (selectedType) {
+                previews.type.textContent = courseTypeMap[selectedType.value] || '公共课';
+            }
+        }
+
+        // 监听输入变化
+        Object.values(inputs).forEach(input => {
+            if (input) {
+                input.addEventListener('input', updatePreview);
+            }
+        });
+
+        // 监听课程类型变化
+        document.querySelectorAll('input[name="type"]').forEach(radio => {
+            radio.addEventListener('change', updatePreview);
+        });
+
+        // 初始化预览
+        updatePreview();
+
+        // 输入框动画效果
+        document.querySelectorAll('.form-control').forEach(input => {
+            input.addEventListener('focus', function() {
+                    if (!this.disabled) {
+                        this.parentElement.style.transform = 'translateY(-3px)';
+                        this.parentElement.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.1)';
+                    }
+                });
+
+
+            input.addEventListener('blur', function() {
+                this.parentElement.style.transform = '';
+                this.parentElement.style.boxShadow = '';
+            });
+        });
+
+        // 课程类型选项悬停效果
+        document.querySelectorAll('.course-type-label').forEach(label => {
+            label.addEventListener('mouseenter', function() {
+                if (!this.previousElementSibling.checked) {
+                    this.style.transform = 'translateY(-3px)';
+                    this.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+                }
+            });
+
+            label.addEventListener('mouseleave', function() {
+                if (!this.previousElementSibling.checked) {
+                    this.style.transform = '';
+                    this.style.boxShadow = '';
+                }
+            });
+        });
+
+        // 实时验证
+        inputs.lecture.addEventListener('input', function() {
+            if (this.value < 0 || this.value > 200) {
+                this.setCustomValidity('学时应在0-200小时之间');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+
+        inputs.credit.addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            if (isNaN(value) || value < 0 || value > 10) {
+                this.setCustomValidity('学分应在0-10之间');
+            } else if ((value * 2) % 1 !== 0) {
+                this.setCustomValidity('学分应为0.5的倍数');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+
+        // 课程号验证（仅新增时）
+        {% if not c %}
+        inputs.cno.addEventListener('input', function() {
+            const value = this.value.trim();
+            if (value && !/^[A-Za-z0-9]+$/.test(value)) {
+                this.setCustomValidity('课程号只能包含字母和数字');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+        {% endif %}
+    });
+</script>
+{% endblock %}
