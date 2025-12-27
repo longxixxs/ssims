@@ -946,78 +946,156 @@ class SecurityError(Exception):
 
 
 class CodeValidator:
+    """
+    校验 AI 生成的代码：只允许“只读 ORM 查询 + 简单 Python 表达式”，禁止任何可能逃逸/破坏的数据操作。
+    """
+
+    # 禁止的“直接调用函数名”（Name 调用）
+    FORBIDDEN_CALL_NAMES = {
+        'eval', 'exec', 'compile', 'open', 'input', 'print',
+        '__import__', 'getattr', 'setattr', 'delattr',
+        'globals', 'locals', 'vars', 'dir', 'type', 'super',
+    }
+
+    # 禁止的“方法名调用”（Attribute 调用）
+    FORBIDDEN_METHOD_ATTRS = {
+        # ORM 写操作
+        'delete', 'update', 'create', 'bulk_create', 'save',
+        'bulk_update',
+
+        # 可能绕开 ORM 规则/执行原始 SQL
+        'raw', 'extra',
+
+        # 可能引入文件/系统能力（即使没 import）
+        'system', 'popen', 'spawn', 'fork',
+
+        # Django/DB 高风险（按需增减）
+        'execute',
+    }
+
     @staticmethod
-    def validate_ast(code):
+    def validate_ast(code: str) -> bool:
         try:
             tree = ast.parse(code)
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.Import, ast.ImportFrom)):
-                    for alias in node.names:
-                        if alias.name in ['os', 'sys', 'subprocess', 'shutil', 'socket', 'requests']:
-                            raise SecurityError(f'禁止导入模块: {alias.name}')
-                if isinstance(node, ast.Call):
-                    func_name = ''
-                    if isinstance(node.func, ast.Name):
-                        func_name = node.func.id
-                    elif isinstance(node.func, ast.Attribute):
-                        func_name = node.func.attr
-                    if func_name in ['eval', 'exec', 'compile', 'open', 'input']:
-                        raise SecurityError(f'禁止调用函数: {func_name}')
-            return True
         except SyntaxError as e:
             raise SecurityError(f'代码语法错误: {e}')
 
+        for node in ast.walk(tree):
+            # 1) 禁止 import / from
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                raise SecurityError('禁止使用 import / from')
+
+            # 2) 禁止 try/except（与你的 prompt 对齐）
+            if isinstance(node, ast.Try):
+                raise SecurityError('禁止使用 try / except')
+
+            # 3) 禁止定义函数/类/lambda（与你的 prompt 对齐）
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+                raise SecurityError('禁止定义函数或类或 lambda')
+
+            # 4) 禁止循环（防死循环卡死 worker）
+            if isinstance(node, (ast.For, ast.While)):
+                raise SecurityError('禁止使用循环语句')
+
+            # 5) 禁止访问任何 dunder 属性（防 __class__/__subclasses__/__mro__ 等逃逸链）
+            if isinstance(node, ast.Attribute):
+                if isinstance(node.attr, str) and node.attr.startswith('__'):
+                    raise SecurityError('禁止访问双下划线属性')
+
+            # 6) 禁止直接引用某些危险名字（尤其是 __builtins__）
+            if isinstance(node, ast.Name):
+                if node.id in {'__builtins__', '__loader__', '__spec__'}:
+                    raise SecurityError(f'禁止使用变量: {node.id}')
+
+            # 7) 禁止危险函数调用 / 危险方法调用
+            if isinstance(node, ast.Call):
+                # 7.1 Name(...) 调用
+                if isinstance(node.func, ast.Name):
+                    if node.func.id in CodeValidator.FORBIDDEN_CALL_NAMES:
+                        raise SecurityError(f'禁止调用函数: {node.func.id}')
+
+                # 7.2 obj.method(...) 调用
+                if isinstance(node.func, ast.Attribute):
+                    attr = node.func.attr
+                    if attr in CodeValidator.FORBIDDEN_METHOD_ATTRS:
+                        raise SecurityError(f'禁止调用方法: {attr}')
+                    # 同时禁止 dunder 方法调用
+                    if isinstance(attr, str) and attr.startswith('__'):
+                        raise SecurityError('禁止调用双下划线方法')
+
+        return True
+
 
 class AICodeExecutor:
+    """
+    执行 AI 生成的代码（只读、可序列化输出），并做安全环境隔离。
+    """
     def __init__(self):
+        # 只给非常有限的内建函数
         self.safe_builtins = {
-            'list', 'dict', 'tuple', 'set', 'str', 'int', 'float', 'bool',
-            'len', 'range', 'enumerate', 'zip', 'sorted', 'filter', 'map', 'sum', 'all', 'any', 'min', 'max'
+            'list', 'dict', 'tuple', 'set',
+            'str', 'int', 'float', 'bool',
+            'len', 'range', 'enumerate', 'zip',
+            'sorted', 'filter', 'map', 'sum',
+            'all', 'any', 'min', 'max', 'abs', 'round'
         }
 
-    def execute_ai_code(self, code_string, context=None):
+    def execute_ai_code(self, code_string: str, context=None):
         try:
             self._validate_code_safety(code_string)
             exec_globals = self._create_safe_environment()
             if context:
                 exec_globals.update(context)
+
+            # 执行 AI 代码（必须产出 result 变量）
             exec(code_string, exec_globals)
             result = exec_globals.get('result')
-            print('结果')
-            print(result)
             return self._serialize_result(result)
+
         except Exception as e:
             return {'error': f'执行失败: {str(e)}'}
 
-    def _validate_code_safety(self, code):
+    def _validate_code_safety(self, code: str):
+        # 额外做一层快速字符串过滤（AST 才是主防线）
         forbidden_patterns = [
-            r'__import__', r'exec\(', r'eval\(', r'compile\(',
-            r'open\(', r'file\(', r'os\.', r'sys\.', r'subprocess\.'
+            r'__import__',
+            r'open\s*\(',
+            r'eval\s*\(',
+            r'exec\s*\(',
+            r'compile\s*\(',
+            r'__builtins__',
         ]
         for pattern in forbidden_patterns:
             if re.search(pattern, code, re.IGNORECASE):
                 raise SecurityError(f'检测到不安全代码: {pattern}')
+
         CodeValidator.validate_ast(code)
-        print(code)
 
     def _create_safe_environment(self):
+        # 关键：显式设置 __builtins__，否则 exec 会注入完整 builtins
+        safe_builtins_dict = {}
+        for name in self.safe_builtins:
+            if hasattr(builtins, name):
+                safe_builtins_dict[name] = getattr(builtins, name)
+
         env = {
+            '__builtins__': safe_builtins_dict,
+
+            # ORM 可用对象/聚合函数
             'Q': Q, 'Avg': Avg, 'Sum': Sum, 'Count': Count, 'Max': Max, 'Min': Min,
             'student': student,
             'cl': cl,
             'depart': depart,
             'course': course,
             'sc': sc,
-            'abs': abs, 'round': round, 'min': min, 'max': max
         }
-        for name in self.safe_builtins:
-            if hasattr(builtins, name):
-                env[name] = getattr(builtins, name)
         return env
 
     def _serialize_result(self, result):
         if result is None:
             return {'type': 'none', 'data': '无结果'}
+
+        # multi 表格结构
         if isinstance(result, list) and all(isinstance(r, dict) and 'title' in r and 'data' in r for r in result):
             serialized = []
             for r in result:
@@ -1026,16 +1104,21 @@ class AICodeExecutor:
                 r['data'] = make_json_safe(r['data'])
                 serialized.append(r)
             return {'type': 'multi', 'data': serialized}
+
+        # queryset
         if isinstance(result, QuerySet):
             data = list(result[:100])
             data = make_json_safe(data)
             return {'type': 'queryset', 'count': result.count(), 'data': data}
+
+        # 常见结构
         if isinstance(result, (list, dict, tuple)):
             return {'type': type(result).__name__, 'data': make_json_safe(result)}
+
         if isinstance(result, (str, int, float, bool)):
             return {'type': type(result).__name__, 'data': result}
-        return {'type': 'other', 'data': str(result)}
 
+        return {'type': 'other', 'data': str(result)}
 
 CODE_GENERATION_PROMPT = """
 你是一个Django ORM代码生成专家。根据用户需求生成可执行的Python代码。
@@ -1088,7 +1171,7 @@ class sc(models.Model):
 2. 查询结果必须赋值给变量 `result`
 3. 代码必须安全，不能包含文件操作、系统调用等
 4. 优先使用values()获取字典格式数据
-5. 包含必要的异常处理
+5. 不需要异常处理，直接写查询并赋值 result
 6. 不允许出现 import / from / print / try / except
 7. 不允许定义函数或类
 8. 可以直接使用：student, cl, depart, course, sc, Q, Count, Avg, Sum
@@ -1115,38 +1198,79 @@ result = list(student.objects.values('classno__classname').annotate(count=Count(
 def get_ai_response(messages):
     url = f"{settings.AI_BASE_URL}/v1/chat/completions"
     headers = {
-        "Authorization":settings.AI_API_KEY,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {settings.AI_API_KEY}",
     }
     payload = {
-        "model": settings.AI_MODEL,
+        "model": settings.AI_MODEL,  # 比如 'deepseek-chat'
         "messages": messages
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload, )
+        response = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=30,
+        )
+
+        print("=== AI HTTP 状态码 ===")
+        print(response.status_code)
+        print("=== AI 原始文本响应 ===")
+        print(response.text[:1000])
+        print("======================")
+
+        if response.status_code == 401:
+            raise RuntimeError(
+                "AI接口返回 401 未认证：请检查 DeepSeek API Key 是否配置正确、是否带在 Authorization 头里。"
+            )
+
+        if not response.ok:
+            raise RuntimeError(
+                f"AI接口返回非成功状态码 {response.status_code}，内容: {response.text[:200]}"
+            )
+
         data = response.json()
-        print("=== AI 原始响应 ===")
+        print("=== AI 解析后的 JSON ===")
         print(data)
-        print("==================")
+        print("======================")
+
         return data["choices"][0]["message"]["content"]
+
     except Exception as e:
         raise RuntimeError(f"AI调用失败: {str(e)}")
 
 
-def extract_code_from_response(text):
-    code_match = re.search(r'```python\n(.*?)\n```', text, re.DOTALL)
+def extract_code_from_response(text: str) -> str:
+    """
+    优先提取 ```...``` 内的代码；兼容 ```python / ```py / ``` 以及 \r\n。
+    若没有代码块，按原逻辑兜底截取。
+    """
+    if not text:
+        return ""
+
+    code_match = re.search(r'```(?:python|py)?\s*\r?\n(.*?)\r?\n```', text, re.DOTALL | re.IGNORECASE)
     if code_match:
-        return code_match.group(1)
-    lines = text.split('\n')
+        return code_match.group(1).strip()
+
+    lines = text.splitlines()
     code_lines = []
     in_code = False
+
     for line in lines:
-        if any(keyword in line for keyword in ['result =', 'def ', 'class ', 'import ', 'from ']):
+        if line.strip().startswith("```") and in_code:
+            break
+
+        if any(k in line for k in ['result =', 'result=', 'def ', 'class ', 'import ', 'from ']):
             in_code = True
-        if in_code and line.strip() and not line.startswith('#'):
-            code_lines.append(line)
-    return '\n'.join(code_lines) if code_lines else text
+
+        if in_code:
+            if re.match(r'^\s*(解释|说明|注意|结果|输出|AI回复|以下是)\s*[:：]?\s*$', line.strip()):
+                break
+            if line.strip() and not line.lstrip().startswith('#'):
+                code_lines.append(line)
+
+    return '\n'.join(code_lines).strip() if code_lines else text.strip()
 
 
 def format_execution_result(result):
@@ -1167,7 +1291,7 @@ def format_execution_result(result):
     if result.get('type') == 'queryset' and isinstance(result.get('data'), list):
         return json.dumps([{
             'type': 'queryset',
-            'count': len(result['data']),
+            'count': result.get('count', len(result['data'])),
             'data': result['data']
         }], ensure_ascii=False)
     if result.get('type') in ('list', 'dict', 'tuple'):
