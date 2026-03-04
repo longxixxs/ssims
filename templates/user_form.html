@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load roles %}
+
+{% block title %}{% if user_obj %}编辑用户{% else %}新增用户{% endif %} - 学生信息管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+            <div class="d-flex align-items-center mb-4">
+                <div class="icon-container me-3">
+                    <i class="bi bi-person-gear"></i>
+                </div>
+                <div>
+                    <h2 class="mb-1">{% if user_obj %}编辑用户{% else %}创建新用户{% endif %}</h2>
+                    <p class="text-muted mb-0">设置账号、角色，并可创建学生档案</p>
+                </div>
+            </div>
+
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {% if message.tags == 'error' %}<i class="bi bi-exclamation-triangle me-2"></i>
+                    {% elif message.tags == 'success' %}<i class="bi bi-check-circle me-2"></i>
+                    {% else %}<i class="bi bi-info-circle me-2"></i>
+                    {% endif %}
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="card">
+                <div class="card-body p-4">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        {% with form|default:empty_form as form_data %}
+
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label for="username" class="form-label fw-semibold">
+                                    <i class="bi bi-person me-1"></i>用户名
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       id="username"
+                                       name="username"
+                                       class="form-control"
+                                       value="{% if form_data.username %}{{ form_data.username }}{% elif user_obj %}{{ user_obj.username }}{% endif %}"
+                                       {% if user_obj %}readonly style="background-color: #f8f9fa;"{% endif %}
+                                       required
+                                       placeholder="例如：S21001">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="nickname" class="form-label fw-semibold">
+                                    <i class="bi bi-card-heading me-1"></i>昵称
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       id="nickname"
+                                       name="nickname"
+                                       class="form-control"
+                                       value="{% if form_data.nickname %}{{ form_data.nickname }}{% elif user_obj %}{{ user_obj.first_name }}{% endif %}"
+                                       required
+                                       placeholder="例如：张三">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="password1" class="form-label fw-semibold">
+                                    <i class="bi bi-key me-1"></i>{% if user_obj %}重置密码{% else %}密码{% endif %}
+                                    {% if not user_obj %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                <input type="password"
+                                       id="password1"
+                                       name="password1"
+                                       class="form-control"
+                                       {% if not user_obj %}required{% endif %}
+                                       placeholder="至少6位">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="password2" class="form-label fw-semibold">
+                                    <i class="bi bi-key-fill me-1"></i>确认密码
+                                    {% if not user_obj %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                <input type="password"
+                                       id="password2"
+                                       name="password2"
+                                       class="form-control"
+                                       {% if not user_obj %}required{% endif %}
+                                       placeholder="再次输入密码">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-people me-1"></i>角色
+                                </label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    {% for g in groups %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="groups" id="group-{{ g.name }}"
+                                               value="{{ g.name }}" {% if g.name == selected_role %}checked{% endif %}>
+                                        <label class="form-check-label" for="group-{{ g.name }}">{{ g.name }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="form-text">每个账号只能分配一个角色</div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="create_student" name="create_student"
+                                           {% if form_data.create_student == 'on' or student_profile and student_profile.pk %}checked{% endif %}>
+                                    <label class="form-check-label" for="create_student">创建/补全学生档案</label>
+                                </div>
+                                {% if student_profile and student_profile.pk %}
+                                <div class="form-text">当前账号已存在学生档案，可修改下方信息后保存。</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="card mt-4">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3"><i class="bi bi-person-badge me-2"></i>学生档案</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="sname" class="form-label fw-semibold">姓名</label>
+                                        <input type="text" id="sname" name="sname" class="form-control"
+                                               value="{% if form_data.sname %}{{ form_data.sname }}{% elif student_profile and student_profile.sname %}{{ student_profile.sname }}{% endif %}"
+                                               placeholder="学生姓名">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="sex" class="form-label fw-semibold">性别</label>
+                                        <select id="sex" name="sex" class="form-select">
+                                            <option value="boy" {% if form_data.sex == 'boy' or not form_data.sex and student_profile and student_profile.sex == 'boy' %}selected{% endif %}>男</option>
+                                            <option value="girl" {% if form_data.sex == 'girl' or not form_data.sex and student_profile and student_profile.sex == 'girl' %}selected{% endif %}>女</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="classno" class="form-label fw-semibold">班级</label>
+                                    <select id="classno" name="classno" class="form-select">
+                                        <option value="">请选择班级</option>
+                                        {% for c in classes %}
+                                        <option value="{{ c.classno }}"
+                                                    {% if form_data.classno == c.classno or not form_data.classno and student_profile and student_profile.classno and student_profile.classno.classno == c.classno %}selected{% endif %}>
+                                            {{ c.classname }} ({{ c.classno }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="native" class="form-label fw-semibold">籍贯</label>
+                                        <input type="text" id="native" name="native" class="form-control"
+                                               value="{% if form_data.native %}{{ form_data.native }}{% elif student_profile and student_profile.native %}{{ student_profile.native }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="age" class="form-label fw-semibold">年龄</label>
+                                        <input type="number" id="age" name="age" class="form-control"
+                                               value="{% if form_data.age %}{{ form_data.age }}{% elif student_profile and student_profile.age %}{{ student_profile.age }}{% endif %}" min="0" max="100">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="semester" class="form-label fw-semibold">学期</label>
+                                        <input type="number" id="semester" name="semester" class="form-control"
+                                               value="{% if form_data.semester %}{{ form_data.semester }}{% elif student_profile and student_profile.semester %}{{ student_profile.semester }}{% endif %}" min="1" max="12">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="home" class="form-label fw-semibold">住址</label>
+                                        <input type="text" id="home" name="home" class="form-control"
+                                               value="{% if form_data.home %}{{ form_data.home }}{% elif student_profile and student_profile.home %}{{ student_profile.home }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="telephone" class="form-label fw-semibold">联系电话</label>
+                                        <input type="text" id="telephone" name="telephone" class="form-control"
+                                               value="{% if form_data.telephone %}{{ form_data.telephone }}{% elif student_profile and student_profile.telephone %}{{ student_profile.telephone }}{% endif %}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                            <a href="/users/" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>返回列表
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-circle me-2"></i>{% if user_obj %}保存修改{% else %}创建用户{% endif %}
+                            </button>
+                        </div>
+                        {% endwith %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

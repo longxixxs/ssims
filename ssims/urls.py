@@ -11,6 +11,11 @@ urlpatterns = [
     path('register/', views.UserRegisterView.as_view(), name='register'),
     path('password/', views.UserPasswordView.as_view(), name='password'),
 
+    # ==================== 用户管理 ====================
+    path('users/', views.UserListView.as_view(), name='user_list'),
+    path('users/add/', views.UserCreateView.as_view(), name='user_add'),
+    path('users/<int:uid>/edit/', views.UserEditView.as_view(), name='user_edit'),
+
     # ==================== 仪表盘 ====================
     path('', views.DashboardView.as_view(), name='dashboard'),
 
@@ -48,5 +53,8 @@ urlpatterns = [
     path('sc/<str:sno>/<str:cno>/grade/', views.UpdateGradeView.as_view(), name='update_grade'),
 
     # ==================== AI助手 ====================
-    path('chat/', views.chat_view, name='chat')
+    path('chat/', views.chat_view, name='chat'),
+
+    # ==================== 审计日志 ====================
+    path('audit/', views.AuditLogListView.as_view(), name='audit_list')
 ]

@@ -1,3 +1,5 @@
+{% load roles %}
+
 <div class="nav-item">
     <a href="/" class="{% if request.path == '/' %}active{% endif %}">
         <i class="bi bi-bar-chart-line"></i>
@@ -5,6 +7,7 @@
     </a>
 </div>
 
+{% if user|has_role:'admin' or user|has_role:'teacher' %}
 <div class="nav-item">
     <a href="/students/" class="{% if '/students/' in request.path %}active{% endif %}">
         <i class="bi bi-people"></i>
@@ -32,10 +35,28 @@
         <span>课程管理</span>
     </a>
 </div>
+{% endif %}
 
+{% if user|has_role:'admin' or user|has_role:'teacher' %}
 <div class="nav-item">
     <a href="/chat/" class="{% if '/chat/' in request.path %}active{% endif %}">
         <i class="bi bi-robot"></i>
         <span>AI 助手</span>
     </a>
 </div>
+{% endif %}
+
+{% if user|has_role:'admin' %}
+<div class="nav-item">
+    <a href="/users/" class="{% if '/users/' in request.path %}active{% endif %}">
+        <i class="bi bi-person-gear"></i>
+        <span>用户管理</span>
+    </a>
+</div>
+<div class="nav-item">
+    <a href="/audit/" class="{% if '/audit/' in request.path %}active{% endif %}">
+        <i class="bi bi-journal-text"></i>
+        <span>审计日志</span>
+    </a>
+</div>
+{% endif %}

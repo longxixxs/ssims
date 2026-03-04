@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load roles %}
 
 {% block title %}系部管理 - 学生信息管理系统{% endblock %}
 
@@ -10,9 +11,11 @@
             <h2 class="mb-1">系部管理</h2>
             <p class="text-muted mb-0">管理系统中的所有系部信息</p>
         </div>
+        {% if user|has_role:'admin' %}
         <a href="/departs/add/" class="btn btn-primary px-4">
             <i class="bi bi-plus-circle me-2"></i>新增系部
         </a>
+        {% endif %}
     </div>
 
     <!-- 统计卡片 -->
@@ -121,18 +124,25 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
+                                    {% if user|has_role:'admin' %}
                                     <a href="/departs/edit/{{ d.dno }}/"
                                        class="btn btn-sm btn-outline-primary px-3"
                                        title="编辑系部">
                                         <i class="bi bi-pencil-square me-1"></i>编辑
                                     </a>
-                                    <a href="/departs/delete/{{ d.dno }}/"
-                                       class="btn btn-sm btn-outline-danger px-3 delete-btn"
-                                       title="删除系部"
-                                       data-departname="{{ d.dname }}"
-                                       onclick="return confirmDelete(this)">
-                                        <i class="bi bi-trash me-1"></i>删除
-                                    </a>
+                                    <form method="post"
+                                          action="/departs/delete/{{ d.dno }}/"
+                                          class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-danger px-3 delete-btn"
+                                                title="删除系部"
+                                                data-departname="{{ d.dname }}"
+                                                onclick="return confirmDelete(this)">
+                                            <i class="bi bi-trash me-1"></i>删除
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -143,10 +153,12 @@
                                     <i class="bi bi-buildings display-1 text-muted mb-3"></i>
                                     <h4 class="text-muted mb-2">暂无系部数据</h4>
                                     <p class="text-muted mb-3">还没有任何系部信息，点击上方按钮添加新系部</p>
+                                    {% if user|has_role:'admin' %}
                                     <a href="/departs/add/" class="btn btn-primary">
                                         <i class="bi bi-plus-circle me-2"></i>
                                         创建第一个系部
                                     </a>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -434,16 +446,12 @@
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // 删除确认对话框
-        function confirmDelete(link) {
-            const departName = link.getAttribute('data-departname') || '该系部';
-            if (confirm(`确定要删除"${departName}"吗？此操作不可撤销！`)) {
-                return true;
-            }
-            return false;
-        }
+    function confirmDelete(button) {
+        const departName = button.getAttribute('data-departname') || '该系部';
+        return confirm(`确定要删除"${departName}"吗？此操作不可撤销！`);
+    }
 
+    document.addEventListener('DOMContentLoaded', function() {
         // 表格行悬停效果
         const tableRows = document.querySelectorAll('.depart-row');
         tableRows.forEach(row => {

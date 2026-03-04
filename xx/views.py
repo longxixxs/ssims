@@ -11,7 +11,9 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.models import User, Group
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Avg, Sum, Count, Max, Min
 from django.db.models.query import QuerySet
@@ -24,7 +26,36 @@ from django.views.generic import ListView, DetailView
 from openpyxl import load_workbook, Workbook
 
 # ============ 本地模块 ============
-from .models import student, cl, depart, course, sc
+from .models import student, cl, depart, course, sc, AuditLog
+from .audit import log_action, serialize_instance
+from .permissions import RoleRequiredMixin, StudentSelfOnlyMixin, is_student, user_has_role
+
+MANAGED_ROLES = ('admin', 'teacher', 'student')
+
+
+def _get_managed_roles(user):
+    if not user or not user.is_authenticated:
+        return []
+    if user.is_superuser:
+        return ['admin']
+    return list(user.groups.filter(name__in=MANAGED_ROLES).values_list('name', flat=True))
+
+
+def _parse_single_role(group_names):
+    invalid = [name for name in group_names if name not in MANAGED_ROLES]
+    if invalid:
+        raise ValueError('检测到非法角色提交')
+    if len(group_names) != 1:
+        raise ValueError('角色必须且只能选择一个')
+    return group_names[0]
+
+
+def _validate_password_or_raise(password, user=None):
+    try:
+        validate_password(password, user=user)
+    except ValidationError as e:
+        raise ValueError('；'.join(e.messages))
+
 
 # ==================== 用户认证模块 ====================
 class UserLoginView(View):
@@ -43,7 +74,29 @@ class UserLoginView(View):
         user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
-            return redirect('/')
+            roles = _get_managed_roles(user)
+            if len(roles) > 1:
+                messages.error(request, '账号角色配置异常，请联系管理员处理')
+                logout(request)
+                return redirect('/login/')
+            if not roles:
+                messages.warning(request, '账号待审核，请联系管理员分配角色')
+                logout(request)
+                return redirect('/login/')
+
+            role = roles[0]
+            if role == 'student':
+                if student.objects.filter(sno=user.username).exists():
+                    return redirect(f'/students/{user.username}/')
+                messages.warning(request, '学生档案未创建，请联系管理员完善信息')
+                logout(request)
+                return redirect('/login/')
+            if role in ('admin', 'teacher'):
+                return redirect('/')
+
+            messages.error(request, '账号角色配置异常，请联系管理员处理')
+            logout(request)
+            return redirect('/login/')
         messages.error(request, '用户名或密码错误')
         return render(request, self.template_name)
 
@@ -73,17 +126,22 @@ class UserRegisterView(View):
         if password1 != password2:
             messages.error(request, '两次密码不一致')
             return render(request, self.template_name)
+        try:
+            _validate_password_or_raise(password1)
+        except ValueError as e:
+            messages.error(request, str(e))
+            return render(request, self.template_name)
         if User.objects.filter(username=username).exists():
             messages.error(request, '用户名已存在')
             return render(request, self.template_name)
 
-        User.objects.create_user(
+        user = User.objects.create_user(
             username=username,
             password=password1,
             first_name=nickname
         )
 
-        messages.success(request, '注册成功，请登录')
+        messages.success(request, '注册成功，账号待管理员审核分配角色后方可登录')
         return redirect('/login/')
 
 
@@ -110,6 +168,11 @@ class UserPasswordView(LoginRequiredMixin, View):
         if len(new1) < 6:
             messages.error(request, '密码长度不能少于6位')
             return render(request, self.template_name)
+        try:
+            _validate_password_or_raise(new1, user=request.user)
+        except ValueError as e:
+            messages.error(request, str(e))
+            return render(request, self.template_name)
 
         request.user.set_password(new1)
         request.user.save()
@@ -118,13 +181,352 @@ class UserPasswordView(LoginRequiredMixin, View):
         return redirect('/login/')
 
 
+# ==================== 用户管理模块 ====================
+
+def _user_form_from_request(request):
+    return {
+        'username': request.POST.get('username', ''),
+        'nickname': request.POST.get('nickname', ''),
+        'sname': request.POST.get('sname', ''),
+        'sex': request.POST.get('sex', ''),
+        'classno': request.POST.get('classno', ''),
+        'native': request.POST.get('native', ''),
+        'age': request.POST.get('age', ''),
+        'semester': request.POST.get('semester', ''),
+        'home': request.POST.get('home', ''),
+        'telephone': request.POST.get('telephone', ''),
+        'create_student': request.POST.get('create_student', ''),
+    }
+
+
+def _empty_user_form():
+    return {
+        'username': '',
+        'nickname': '',
+        'sname': '',
+        'sex': '',
+        'classno': '',
+        'native': '',
+        'age': '',
+        'semester': '',
+        'home': '',
+        'telephone': '',
+        'create_student': '',
+    }
+
+def _upsert_student_profile_from_request(request, user, existing_profile=None):
+    sname = request.POST.get('sname', '').strip()
+    classno = request.POST.get('classno', '').strip()
+
+    if not all([sname, classno]):
+        raise ValueError('创建学生档案时，姓名和班级不能为空')
+
+    class_obj = cl.objects.get(classno=classno)
+
+    # 验证年龄
+    age = request.POST.get('age', '').strip()
+    if age:
+        try:
+            age_int = int(age)
+            if age_int < 10 or age_int > 100:
+                raise ValueError('年龄必须在10-100之间')
+            age = age_int
+        except ValueError:
+            raise ValueError('年龄必须是有效数字')
+    else:
+        age = None
+
+    # 验证学期
+    semester = request.POST.get('semester', '').strip()
+    if semester:
+        try:
+            semester_int = int(semester)
+            if semester_int < 1 or semester_int > 12:
+                raise ValueError('学期必须在1-12之间')
+            semester = semester_int
+        except ValueError:
+            raise ValueError('学期必须是有效数字')
+    else:
+        semester = None
+
+    if existing_profile is None:
+        if student.objects.filter(sno=user.username).exists():
+            raise ValueError('学生档案已存在')
+        existing_profile = student(sno=user.username)
+
+    existing_profile.sname = sname
+    existing_profile.sex = request.POST.get('sex', 'girl')
+    existing_profile.native = request.POST.get('native', '')
+    existing_profile.age = age
+    existing_profile.classno = class_obj
+    existing_profile.semester = semester
+    existing_profile.home = request.POST.get('home', '')
+    existing_profile.telephone = request.POST.get('telephone', '')
+    existing_profile.save()
+
+class UserListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
+    """用户列表"""
+    model = User
+    template_name = 'user_list.html'
+    context_object_name = 'users'
+    paginate_by = 20
+    allowed_roles = ('admin',)
+
+    def get_queryset(self):
+        queryset = User.objects.all().prefetch_related('groups').order_by('username')
+
+        keyword = self.request.GET.get('q', '').strip()
+        role = self.request.GET.get('role', '').strip()
+
+        if keyword:
+            queryset = queryset.filter(
+                Q(username__icontains=keyword) | Q(first_name__icontains=keyword)
+            )
+        if role:
+            queryset = queryset.filter(groups__name=role).distinct()
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        users = list(context['users'])
+
+        usernames = [u.username for u in users]
+        student_set = set(
+            student.objects.filter(sno__in=usernames).values_list('sno', flat=True)
+        )
+        context['user_rows'] = [
+            {'user': u, 'has_student': u.username in student_set}
+            for u in users
+        ]
+        context['roles'] = Group.objects.order_by('name').values_list('name', flat=True)
+        context['q'] = self.request.GET.get('q', '').strip()
+        context['role'] = self.request.GET.get('role', '').strip()
+        return context
+
+
+class UserCreateView(LoginRequiredMixin, RoleRequiredMixin, View):
+    """创建用户"""
+    template_name = 'user_form.html'
+    allowed_roles = ('admin',)
+
+    def get(self, request):
+        for group_name in MANAGED_ROLES:
+            Group.objects.get_or_create(name=group_name)
+
+        return render(request, self.template_name, {
+            'user_obj': None,
+            'groups': Group.objects.order_by('name'),
+            'classes': cl.objects.all(),
+            'empty_form': _empty_user_form(),
+            'student_profile': None,
+            'selected_role': '',
+        })
+
+    def post(self, request):
+        username = request.POST.get('username', '').strip()
+        nickname = request.POST.get('nickname', '').strip()
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+        group_names = request.POST.getlist('groups')
+        create_student = request.POST.get('create_student') == 'on'
+
+        if not all([username, nickname]):
+            messages.error(request, '用户名和昵称不能为空')
+            return self._render_with_data(request)
+
+        if password1 or password2:
+            if password1 != password2:
+                messages.error(request, '两次密码不一致')
+                return self._render_with_data(request)
+
+            if len(password1) < 6:
+                messages.error(request, '密码长度不能少于6位')
+                return self._render_with_data(request)
+            try:
+                _validate_password_or_raise(password1)
+            except ValueError as e:
+                messages.error(request, str(e))
+                return self._render_with_data(request)
+        else:
+            messages.error(request, '密码不能为空，请设置密码')
+            return self._render_with_data(request)
+
+        try:
+            selected_role = _parse_single_role(group_names)
+        except ValueError as e:
+            messages.error(request, str(e))
+            return self._render_with_data(request)
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, '用户名已存在')
+            return self._render_with_data(request)
+
+        if selected_role == 'student' and not create_student:
+            messages.error(request, '学生角色必须创建学生档案')
+            return self._render_with_data(request)
+
+        if create_student and selected_role != 'student':
+            messages.error(request, '仅学生角色可以创建学生档案')
+            return self._render_with_data(request)
+
+        if create_student:
+            if not request.POST.get('sname', '').strip() or not request.POST.get('classno', '').strip():
+                messages.error(request, '创建学生档案时，姓名和班级不能为空')
+                return self._render_with_data(request)
+
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=username,
+                    password=password1,
+                    first_name=nickname
+                )
+
+                role_group, _ = Group.objects.get_or_create(name=selected_role)
+                user.groups.add(role_group)
+
+                if create_student:
+                    _upsert_student_profile_from_request(request, user)
+
+            messages.success(request, '用户创建成功')
+            return redirect('/users/')
+
+        except cl.DoesNotExist:
+            messages.error(request, '班级不存在')
+            return self._render_with_data(request)
+        except ValueError as e:
+            messages.error(request, str(e))
+            return self._render_with_data(request)
+        except Exception as e:
+            messages.error(request, f'创建失败：{str(e)}')
+            return self._render_with_data(request)
+
+    def _render_with_data(self, request):
+        form_data = _user_form_from_request(request)
+        return render(request, self.template_name, {
+            'user_obj': None,
+            'groups': Group.objects.order_by('name'),
+            'classes': cl.objects.all(),
+            'form': form_data,
+            'empty_form': _empty_user_form(),
+            'selected_role': request.POST.getlist('groups')[0] if request.POST.getlist('groups') else '',
+            'student_profile': None,
+        })
+
+class UserEditView(LoginRequiredMixin, RoleRequiredMixin, View):
+    """编辑用户"""
+    template_name = 'user_form.html'
+    allowed_roles = ('admin',)
+
+    def get(self, request, uid):
+        user_obj = get_object_or_404(User, id=uid)
+        for group_name in MANAGED_ROLES:
+            Group.objects.get_or_create(name=group_name)
+
+        student_profile = student.objects.filter(sno=user_obj.username).first()
+        
+        return render(request, self.template_name, {
+            'user_obj': user_obj,
+            'groups': Group.objects.order_by('name'),
+            'classes': cl.objects.all(),
+            'selected_role': user_obj.groups.filter(name__in=MANAGED_ROLES).values_list('name', flat=True).first() or '',
+            'student_profile': student_profile,
+            'empty_form': _empty_user_form()
+        })
+
+    def post(self, request, uid):
+        user_obj = get_object_or_404(User, id=uid)
+        nickname = request.POST.get('nickname', '').strip()
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+        group_names = request.POST.getlist('groups')
+        create_student = request.POST.get('create_student') == 'on'
+
+        if not nickname:
+            messages.error(request, '昵称不能为空')
+            return self._render_with_data(request, user_obj)
+
+        if password1 or password2:
+            if password1 != password2:
+                messages.error(request, '两次密码不一致')
+                return self._render_with_data(request, user_obj)
+            if len(password1) < 6:
+                messages.error(request, '密码长度不能少于6位')
+                return self._render_with_data(request, user_obj)
+            try:
+                _validate_password_or_raise(password1, user=user_obj)
+            except ValueError as e:
+                messages.error(request, str(e))
+                return self._render_with_data(request, user_obj)
+
+        try:
+            selected_role = _parse_single_role(group_names)
+        except ValueError as e:
+            messages.error(request, str(e))
+            return self._render_with_data(request, user_obj)
+
+        existing_profile = student.objects.filter(sno=user_obj.username).first()
+
+        if selected_role == 'student' and not (create_student or existing_profile):
+            messages.error(request, '学生角色必须关联学生档案')
+            return self._render_with_data(request, user_obj)
+
+        if create_student and selected_role != 'student':
+            messages.error(request, '仅学生角色可以创建学生档案')
+            return self._render_with_data(request, user_obj)
+
+        if create_student:
+            if not request.POST.get('sname', '').strip() or not request.POST.get('classno', '').strip():
+                messages.error(request, '创建学生档案时，姓名和班级不能为空')
+                return self._render_with_data(request, user_obj)
+
+        try:
+            with transaction.atomic():
+                user_obj.first_name = nickname
+                if password1:
+                    user_obj.set_password(password1)
+                user_obj.save()
+
+                user_obj.groups.clear()
+                role_group, _ = Group.objects.get_or_create(name=selected_role)
+                user_obj.groups.add(role_group)
+
+                if create_student:
+                    _upsert_student_profile_from_request(request, user_obj, existing_profile)
+
+            messages.success(request, '用户更新成功')
+            return redirect('/users/')
+
+        except cl.DoesNotExist:
+            messages.error(request, '班级不存在')
+            return self._render_with_data(request, user_obj)
+        except ValueError as e:
+            messages.error(request, str(e))
+            return self._render_with_data(request, user_obj)
+        except Exception as e:
+            messages.error(request, f'更新失败：{str(e)}')
+            return self._render_with_data(request, user_obj)
+
+    def _render_with_data(self, request, user_obj):
+        return render(request, self.template_name, {
+            'user_obj': user_obj,
+            'groups': Group.objects.order_by('name'),
+            'classes': cl.objects.all(),
+            'form': _user_form_from_request(request),
+            'selected_role': request.POST.getlist('groups')[0] if request.POST.getlist('groups') else '',
+            'student_profile': student.objects.filter(sno=user_obj.username).first(),
+            'empty_form': _empty_user_form()
+        })
 # ==================== 学生管理模块 ====================
 
-class StudentListView(LoginRequiredMixin, ListView):
+class StudentListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     """学生列表"""
     model = student
     template_name = 'student_list.html'
     context_object_name = 'students'
+    paginate_by = 10
+    allowed_roles = ('admin', 'teacher')
 
     def get_queryset(self):
         queryset = student.objects.select_related('classno', 'classno__dno')
@@ -168,6 +570,11 @@ class StudentListView(LoginRequiredMixin, ListView):
         queryset = self.get_queryset()
 
         context['classes'] = cl.objects.all()
+        context['result_count'] = queryset.count()
+        query_params = self.request.GET.copy()
+        if 'page' in query_params:
+            del query_params['page']
+        context['query_string'] = query_params.urlencode()
         context['boy_count'] = queryset.filter(sex='boy').count()
         context['girl_count'] = queryset.filter(sex='girl').count()
         context['class_count'] = queryset.values('classno').distinct().count()
@@ -177,9 +584,10 @@ class StudentListView(LoginRequiredMixin, ListView):
         return context
 
 
-class StudentAddView(LoginRequiredMixin, View):
+class StudentAddView(LoginRequiredMixin, RoleRequiredMixin, View):
     """添加学生"""
     template_name = 'student_form.html'
+    allowed_roles = ('admin',)
 
     def get(self, request):
         return render(request, self.template_name, {
@@ -207,7 +615,7 @@ class StudentAddView(LoginRequiredMixin, View):
 
             class_obj = cl.objects.get(classno=classno)
 
-            student.objects.create(
+            stu = student.objects.create(
                 sno=sno,
                 sname=sname,
                 sex=request.POST.get('sex', 'girl'),
@@ -217,6 +625,13 @@ class StudentAddView(LoginRequiredMixin, View):
                 semester=request.POST.get('semester') or None,
                 home=request.POST.get('home', ''),
                 telephone=request.POST.get('telephone', '')
+            )
+            log_action(
+                request,
+                'create',
+                stu,
+                before=None,
+                after=serialize_instance(stu)
             )
             messages.success(request, '添加成功')
             return redirect('/students/')
@@ -233,9 +648,10 @@ class StudentAddView(LoginRequiredMixin, View):
             })
 
 
-class StudentEditView(LoginRequiredMixin, View):
+class StudentEditView(LoginRequiredMixin, RoleRequiredMixin, View):
     """编辑学生"""
     template_name = 'student_form.html'
+    allowed_roles = ('admin',)
 
     def get(self, request, sno):
         stu = get_object_or_404(student, sno=sno)
@@ -259,6 +675,8 @@ class StudentEditView(LoginRequiredMixin, View):
 
             class_obj = cl.objects.get(classno=classno)
 
+            before = serialize_instance(stu)
+
             stu.sname = sname
             stu.sex = request.POST.get('sex', 'girl')
             stu.native = request.POST.get('native', '')
@@ -268,6 +686,14 @@ class StudentEditView(LoginRequiredMixin, View):
             stu.home = request.POST.get('home', '')
             stu.telephone = request.POST.get('telephone', '')
             stu.save()
+
+            log_action(
+                request,
+                'update',
+                stu,
+                before=before,
+                after=serialize_instance(stu)
+            )
 
             messages.success(request, '修改成功')
             return redirect('/students/')
@@ -286,22 +712,33 @@ class StudentEditView(LoginRequiredMixin, View):
             })
 
 
-class StudentDeleteView(LoginRequiredMixin, View):
+class StudentDeleteView(LoginRequiredMixin, RoleRequiredMixin, View):
     """删除学生"""
+    allowed_roles = ('admin',)
+    http_method_names = ['post']
 
-    def get(self, request, sno):
+    def post(self, request, sno):
         stu = get_object_or_404(student, sno=sno)
+        before = serialize_instance(stu)
         stu.delete()
+        log_action(
+            request,
+            'delete',
+            stu,
+            before=before,
+            after=None
+        )
         messages.success(request, '删除成功')
         return redirect('/students/')
 
 
-class StudentDetailView(LoginRequiredMixin, DetailView):
+class StudentDetailView(LoginRequiredMixin, RoleRequiredMixin, StudentSelfOnlyMixin, DetailView):
     """学生详情"""
     model = student
     template_name = 'student_detail.html'
     context_object_name = 'stu'
     pk_url_kwarg = 'sno'
+    allowed_roles = ('admin', 'teacher', 'student')
 
     def get_object(self):
         return get_object_or_404(student, sno=self.kwargs['sno'])
@@ -338,9 +775,10 @@ class StudentDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class StudentImportExcelView(LoginRequiredMixin, View):
+class StudentImportExcelView(LoginRequiredMixin, RoleRequiredMixin, View):
     """Excel批量导入学生"""
     template_name = 'student_import_excel.html'
+    allowed_roles = ('admin',)
 
     def get(self, request):
         return render(request, self.template_name)
@@ -360,13 +798,13 @@ class StudentImportExcelView(LoginRequiredMixin, View):
             wb = load_workbook(file)
             ws = wb.active
 
-            headers = [cell.value for cell in ws[1]]
+            headers = [str(cell.value).strip() if cell.value is not None else '' for cell in ws[1]]
             required_headers = [
                 'sno', 'sname', 'sex', 'native', 'age',
                 'classno', 'semester', 'home', 'telephone'
             ]
 
-            if headers != required_headers:
+            if set(headers) != set(required_headers) or len(headers) != len(required_headers):
                 messages.error(request, 'Excel 表头格式不正确，应为：' + ', '.join(required_headers))
                 return redirect('/students/import/excel/')
 
@@ -387,7 +825,10 @@ class StudentImportExcelView(LoginRequiredMixin, View):
                         if student.objects.filter(sno=data['sno']).exists():
                             raise ValueError(f"学号已存在")
 
-                        class_obj = cl.objects.get(classno=data['classno'])
+                        try:
+                            class_obj = cl.objects.get(classno=data['classno'])
+                        except cl.DoesNotExist:
+                            raise ValueError(f"班级不存在: {data.get('classno', '')}")
 
                         student.objects.create(
                             sno=data['sno'],
@@ -420,8 +861,9 @@ class StudentImportExcelView(LoginRequiredMixin, View):
             return redirect('/students/import/excel/')
 
 
-class StudentExportExcelView(LoginRequiredMixin, View):
+class StudentExportExcelView(LoginRequiredMixin, RoleRequiredMixin, View):
     """导出学生Excel"""
+    allowed_roles = ('admin', 'teacher')
 
     def get(self, request):
         wb = Workbook()
@@ -458,11 +900,12 @@ class StudentExportExcelView(LoginRequiredMixin, View):
 
 # ==================== 班级管理模块 ====================
 
-class ClassListView(LoginRequiredMixin, ListView):
+class ClassListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     """班级列表"""
     model = cl
     template_name = 'class_list.html'
     context_object_name = 'classes'
+    allowed_roles = ('admin', 'teacher')
 
     def get_queryset(self):
         return cl.objects.select_related('dno').annotate(
@@ -477,9 +920,10 @@ class ClassListView(LoginRequiredMixin, ListView):
         return context
 
 
-class ClassAddView(LoginRequiredMixin, View):
+class ClassAddView(LoginRequiredMixin, RoleRequiredMixin, View):
     """添加班级"""
     template_name = 'class_form.html'
+    allowed_roles = ('admin',)
 
     def get(self, request):
         return render(request, self.template_name, {
@@ -506,10 +950,17 @@ class ClassAddView(LoginRequiredMixin, View):
 
             dno_obj = depart.objects.get(dno=dno)
 
-            cl.objects.create(
+            c = cl.objects.create(
                 classno=classno,
                 classname=classname,
                 dno=dno_obj
+            )
+            log_action(
+                request,
+                'create',
+                c,
+                before=None,
+                after=serialize_instance(c)
             )
             messages.success(request, '添加成功')
             return redirect('/classes/')
@@ -526,9 +977,10 @@ class ClassAddView(LoginRequiredMixin, View):
             })
 
 
-class ClassEditView(LoginRequiredMixin, View):
+class ClassEditView(LoginRequiredMixin, RoleRequiredMixin, View):
     """编辑班级"""
     template_name = 'class_form.html'
+    allowed_roles = ('admin',)
 
     def get(self, request, classno):
         c = get_object_or_404(cl, classno=classno)
@@ -552,9 +1004,19 @@ class ClassEditView(LoginRequiredMixin, View):
 
             dno_obj = depart.objects.get(dno=dno)
 
+            before = serialize_instance(c)
+
             c.classname = classname
             c.dno = dno_obj
             c.save()
+
+            log_action(
+                request,
+                'update',
+                c,
+                before=before,
+                after=serialize_instance(c)
+            )
 
             messages.success(request, '修改成功')
             return redirect('/classes/')
@@ -573,29 +1035,41 @@ class ClassEditView(LoginRequiredMixin, View):
             })
 
 
-class ClassDeleteView(LoginRequiredMixin, View):
+class ClassDeleteView(LoginRequiredMixin, RoleRequiredMixin, View):
     """删除班级"""
+    allowed_roles = ('admin',)
+    http_method_names = ['post']
 
-    def get(self, request, classno):
+    def post(self, request, classno):
         c = get_object_or_404(cl, classno=classno)
+        before = serialize_instance(c)
         c.delete()
+        log_action(
+            request,
+            'delete',
+            c,
+            before=before,
+            after=None
+        )
         messages.success(request, '删除成功')
         return redirect('/classes/')
 
 
 # ==================== 系部管理模块 ====================
 
-class DepartListView(LoginRequiredMixin, ListView):
+class DepartListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     """系部列表"""
     model = depart
     template_name = 'depart_list.html'
     context_object_name = 'departs'
     ordering = ['dno']
+    allowed_roles = ('admin', 'teacher')
 
 
-class DepartAddView(LoginRequiredMixin, View):
+class DepartAddView(LoginRequiredMixin, RoleRequiredMixin, View):
     """添加系部"""
     template_name = 'depart_form.html'
+    allowed_roles = ('admin',)
 
     def get(self, request):
         return render(request, self.template_name)
@@ -613,18 +1087,26 @@ class DepartAddView(LoginRequiredMixin, View):
             messages.error(request, '系部编号已存在')
             return render(request, self.template_name)
 
-        depart.objects.create(
+        d = depart.objects.create(
             dno=dno,
             dname=dname,
             telephone=telephone
+        )
+        log_action(
+            request,
+            'create',
+            d,
+            before=None,
+            after=serialize_instance(d)
         )
         messages.success(request, '添加成功')
         return redirect('/departs/')
 
 
-class DepartEditView(LoginRequiredMixin, View):
+class DepartEditView(LoginRequiredMixin, RoleRequiredMixin, View):
     """编辑系部"""
     template_name = 'depart_form.html'
+    allowed_roles = ('admin',)
 
     def get(self, request, dno):
         d = get_object_or_404(depart, dno=dno)
@@ -639,31 +1121,52 @@ class DepartEditView(LoginRequiredMixin, View):
             messages.error(request, '系部名称不能为空')
             return render(request, self.template_name, {'d': d})
 
+        before = serialize_instance(d)
+
         d.dname = dname
         d.telephone = telephone
         d.save()
+
+        log_action(
+            request,
+            'update',
+            d,
+            before=before,
+            after=serialize_instance(d)
+        )
 
         messages.success(request, '修改成功')
         return redirect('/departs/')
 
 
-class DepartDeleteView(LoginRequiredMixin, View):
+class DepartDeleteView(LoginRequiredMixin, RoleRequiredMixin, View):
     """删除系部"""
+    allowed_roles = ('admin',)
+    http_method_names = ['post']
 
-    def get(self, request, dno):
+    def post(self, request, dno):
         d = get_object_or_404(depart, dno=dno)
+        before = serialize_instance(d)
         d.delete()
+        log_action(
+            request,
+            'delete',
+            d,
+            before=before,
+            after=None
+        )
         messages.success(request, '删除成功')
         return redirect('/departs/')
 
 
 # ==================== 课程管理模块 ====================
 
-class CourseListView(LoginRequiredMixin, ListView):
+class CourseListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     """课程列表"""
     model = course
     template_name = 'course_list.html'
     context_object_name = 'courses'
+    allowed_roles = ('admin', 'teacher')
 
     def get_queryset(self):
         queryset = course.objects.all()
@@ -672,6 +1175,7 @@ class CourseListView(LoginRequiredMixin, ListView):
         type_ = self.request.GET.get('type', '').strip()
         semester = self.request.GET.get('semester', '').strip()
         order = self.request.GET.get('order', 'cno')
+        direction = self.request.GET.get('direction', 'asc')
 
         if cname:
             queryset = queryset.filter(cname__icontains=cname)
@@ -683,14 +1187,17 @@ class CourseListView(LoginRequiredMixin, ListView):
         # 排序白名单
         allowed_orders = ['cno', 'cname', 'semester', 'credit']
         if order in allowed_orders:
+            if direction == 'desc':
+                order = '-' + order
             queryset = queryset.order_by(order)
 
         return queryset
 
 
-class CourseAddView(LoginRequiredMixin, View):
+class CourseAddView(LoginRequiredMixin, RoleRequiredMixin, View):
     """添加课程"""
     template_name = 'course_form.html'
+    allowed_roles = ('admin',)
 
     def get(self, request):
         return render(request, self.template_name)
@@ -707,7 +1214,7 @@ class CourseAddView(LoginRequiredMixin, View):
             messages.error(request, '课程编号已存在')
             return render(request, self.template_name)
 
-        course.objects.create(
+        c = course.objects.create(
             cno=cno,
             cname=cname,
             lecture=request.POST.get('lecture') or None,
@@ -715,12 +1222,20 @@ class CourseAddView(LoginRequiredMixin, View):
             credit=request.POST.get('credit') or None,
             type=request.POST.get('type', 'crc')
         )
+        log_action(
+            request,
+            'create',
+            c,
+            before=None,
+            after=serialize_instance(c)
+        )
         messages.success(request, '添加成功')
         return redirect('/courses/')
 
 
-class CourseEditView(LoginRequiredMixin, View):
+class CourseEditView(LoginRequiredMixin, RoleRequiredMixin, View):
     template_name = 'course_form.html'
+    allowed_roles = ('admin',)
 
     def get(self, request, cno):
         c = get_object_or_404(course, cno=cno)
@@ -734,6 +1249,8 @@ class CourseEditView(LoginRequiredMixin, View):
             messages.error(request, '课程名称不能为空')
             return render(request, self.template_name, {'c': c})
 
+        before = serialize_instance(c)
+
         c.cname = cname
         c.lecture = request.POST.get('lecture') or None
         c.semester = request.POST.get('semester') or None
@@ -741,23 +1258,42 @@ class CourseEditView(LoginRequiredMixin, View):
         c.type = request.POST.get('type', 'crc')
         c.save()
 
+        log_action(
+            request,
+            'update',
+            c,
+            before=before,
+            after=serialize_instance(c)
+        )
+
         messages.success(request, '修改成功')
         return redirect('/courses/')
 
 
-class CourseDeleteView(LoginRequiredMixin, View):
+class CourseDeleteView(LoginRequiredMixin, RoleRequiredMixin, View):
     """删除课程"""
+    allowed_roles = ('admin',)
+    http_method_names = ['post']
 
-    def get(self, request, cno):
+    def post(self, request, cno):
         c = get_object_or_404(course, cno=cno)
+        before = serialize_instance(c)
         c.delete()
+        log_action(
+            request,
+            'delete',
+            c,
+            before=before,
+            after=None
+        )
         messages.success(request, '删除成功')
         return redirect('/courses/')
 
 
-class SelectCourseView(LoginRequiredMixin, View):
+class SelectCourseView(LoginRequiredMixin, RoleRequiredMixin, View):
     """学生选课"""
     template_name = 'select_course.html'
+    allowed_roles = ('admin', 'teacher')
 
     def get(self, request, sno):
         stu = get_object_or_404(student, sno=sno)
@@ -796,9 +1332,10 @@ class SelectCourseView(LoginRequiredMixin, View):
         return redirect(f'/sc/{sno}/')
 
 
-class StudentCourseView(LoginRequiredMixin, View):
+class StudentCourseView(LoginRequiredMixin, RoleRequiredMixin, StudentSelfOnlyMixin, View):
     """学生选课列表"""
     template_name = 'student_course.html'
+    allowed_roles = ('admin', 'teacher', 'student')
 
     def get(self, request, sno):
         stu = get_object_or_404(student, sno=sno)
@@ -811,7 +1348,7 @@ class StudentCourseView(LoginRequiredMixin, View):
             total=Sum('cno__credit')
         )['total'] or 0
 
-        avg_credit = records.aggregate(
+        avg_credit = graded_records.aggregate(
             avg=Avg('cno__credit')
         )['avg'] or 0
 
@@ -823,9 +1360,10 @@ class StudentCourseView(LoginRequiredMixin, View):
         })
 
 
-class UpdateGradeView(LoginRequiredMixin, View):
+class UpdateGradeView(LoginRequiredMixin, RoleRequiredMixin, View):
     """录入/修改成绩"""
     template_name = 'grade_form.html'
+    allowed_roles = ('admin', 'teacher')
 
     def get(self, request, sno, cno):
         record = get_object_or_404(sc, sno_id=sno, cno_id=cno)
@@ -857,11 +1395,40 @@ class UpdateGradeView(LoginRequiredMixin, View):
 
 # ==================== 仪表盘统计模块 ====================
 
-class DashboardView(LoginRequiredMixin, View):
+class DashboardView(LoginRequiredMixin, RoleRequiredMixin, View):
     """仪表盘"""
     template_name = 'dashboard.html'
+    allowed_roles = ('admin', 'teacher', 'student')
 
     def get(self, request):
+        if is_student(request.user):
+            stu = student.objects.filter(sno=request.user.username).select_related('classno').first()
+            records = sc.objects.select_related('cno').filter(sno=stu).order_by('-id') if stu else sc.objects.none()
+            graded_records = records.filter(grade__isnull=False)
+
+            total_credit = graded_records.aggregate(
+                total=Sum('cno__credit')
+            )['total'] or 0
+
+            passed_credit = graded_records.filter(
+                grade__gte=60
+            ).aggregate(
+                total=Sum('cno__credit')
+            )['total'] or 0
+
+            avg_grade = graded_records.aggregate(
+                avg=Avg('grade')
+            )['avg']
+
+            return render(request, self.template_name, {
+                'stu': stu,
+                'recent_sc': records[:10],
+                'course_count': records.count(),
+                'graded_count': graded_records.count(),
+                'avg_grade': round(avg_grade, 1) if avg_grade else None,
+                'total_credit': round(total_credit, 1),
+                'passed_credit': round(passed_credit, 1),
+            })
         # 系部学生人数统计
         depart_stat = student.objects.values(
             'classno__dno__dname'
@@ -900,9 +1467,10 @@ class DashboardView(LoginRequiredMixin, View):
         })
 
 
-class CourseStudentsView(LoginRequiredMixin, View):
+class CourseStudentsView(LoginRequiredMixin, RoleRequiredMixin, View):
     """课程选课学生列表及成绩统计"""
     template_name = 'course_students.html'
+    allowed_roles = ('admin', 'teacher')
 
     def get(self, request, cno):
         c = get_object_or_404(course, cno=cno)
@@ -939,6 +1507,45 @@ class CourseStudentsView(LoginRequiredMixin, View):
         })
 
 
+class AuditLogListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
+    """审计日志"""
+    model = AuditLog
+    template_name = 'audit_list.html'
+    context_object_name = 'logs'
+    paginate_by = 20
+    allowed_roles = ('admin',)
+
+    def get_queryset(self):
+        queryset = AuditLog.objects.select_related('actor').order_by('-created_at')
+
+        action = self.request.GET.get('action', '').strip()
+        model_name = self.request.GET.get('model', '').strip()
+        actor = self.request.GET.get('actor', '').strip()
+
+        if action:
+            queryset = queryset.filter(action=action)
+        if model_name:
+            queryset = queryset.filter(model_name=model_name)
+        if actor:
+            queryset = queryset.filter(actor_name__icontains=actor)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        query_params = self.request.GET.copy()
+        if 'page' in query_params:
+            del query_params['page']
+        context['query_string'] = query_params.urlencode()
+        context['model_names'] = (
+            AuditLog.objects.order_by('model_name')
+            .values_list('model_name', flat=True)
+            .distinct()
+        )
+        context['action_choices'] = AuditLog.ACTION_CHOICES
+        return context
+
+
 # ==================== AI助手模块 ====================
 
 class SecurityError(Exception):
@@ -960,8 +1567,10 @@ class CodeValidator:
     # 禁止的“方法名调用”（Attribute 调用）
     FORBIDDEN_METHOD_ATTRS = {
         # ORM 写操作
-        'delete', 'update', 'create', 'bulk_create', 'save',
-        'bulk_update',
+        'delete', 'update', '_update', '_raw_delete',
+        'create', 'bulk_create', 'bulk_update',
+        'get_or_create', 'update_or_create',
+        'save',
 
         # 可能绕开 ORM 规则/执行原始 SQL
         'raw', 'extra',
@@ -997,6 +1606,11 @@ class CodeValidator:
             if isinstance(node, (ast.For, ast.While)):
                 raise SecurityError('禁止使用循环语句')
 
+            # 4.1) 禁止通过下标访问 __builtins__
+            if isinstance(node, ast.Subscript):
+                if isinstance(node.value, ast.Name) and node.value.id == '__builtins__':
+                    raise SecurityError('禁止访问 __builtins__ 下标')
+
             # 5) 禁止访问任何 dunder 属性（防 __class__/__subclasses__/__mro__ 等逃逸链）
             if isinstance(node, ast.Attribute):
                 if isinstance(node.attr, str) and node.attr.startswith('__'):
@@ -1017,6 +1631,8 @@ class CodeValidator:
                 # 7.2 obj.method(...) 调用
                 if isinstance(node.func, ast.Attribute):
                     attr = node.func.attr
+                    if isinstance(attr, str) and attr.startswith('_'):
+                        raise SecurityError('禁止调用下划线开头方法')
                     if attr in CodeValidator.FORBIDDEN_METHOD_ATTRS:
                         raise SecurityError(f'禁止调用方法: {attr}')
                     # 同时禁止 dunder 方法调用
@@ -1214,12 +1830,6 @@ def get_ai_response(messages):
             timeout=30,
         )
 
-        print("=== AI HTTP 状态码 ===")
-        print(response.status_code)
-        print("=== AI 原始文本响应 ===")
-        print(response.text[:1000])
-        print("======================")
-
         if response.status_code == 401:
             raise RuntimeError(
                 "AI接口返回 401 未认证：请检查 DeepSeek API Key 是否配置正确、是否带在 Authorization 头里。"
@@ -1231,10 +1841,6 @@ def get_ai_response(messages):
             )
 
         data = response.json()
-        print("=== AI 解析后的 JSON ===")
-        print(data)
-        print("======================")
-
         return data["choices"][0]["message"]["content"]
 
     except Exception as e:
@@ -1327,6 +1933,12 @@ def make_json_safe(obj):
 
 @login_required
 def chat_view(request):
+    if is_student(request.user):
+        messages.error(request, '无权限访问')
+        return redirect('/')
+    if not request.user.groups.filter(name__in=['admin', 'teacher']).exists() and not request.user.is_superuser:
+        messages.error(request, '无权限访问')
+        return redirect('/')
     if request.GET.get("clear") == "1":
         request.session["chat_messages"] = [
             {

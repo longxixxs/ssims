@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load roles %}
 
 {% block title %}学生管理 - 学生信息管理系统{% endblock %}
 
@@ -17,11 +18,12 @@
                 </div>
             </div>
         </div>
+        {% if user|has_role:'admin' %}
         <a href="{% url 'student_add' %}" class="btn btn-primary px-4">
             <i class="bi bi-plus-circle me-2"></i>添加学生
         </a>
+        {% endif %}
     </div>
-
     <!-- 搜索筛选卡片 -->
     <div class="card mb-4">
         <div class="card-body p-4">
@@ -365,18 +367,21 @@
                                        data-bs-toggle="tooltip">
                                         <i class="bi bi-eye me-1"></i>查看
                                     </a>
+                                    {% if user|has_role:'admin' %}
                                     <a href="{% url 'student_edit' s.sno %}"
                                        class="btn btn-outline-success btn-sm px-3"
                                        title="编辑信息"
                                        data-bs-toggle="tooltip">
                                         <i class="bi bi-pencil-square me-1"></i>编辑
                                     </a>
+                                    {% endif %}
                                     <a href="{% url 'student_course' s.sno %}"
                                        class="btn btn-outline-info btn-sm px-3"
                                        title="选课管理"
                                        data-bs-toggle="tooltip">
                                         <i class="bi bi-journal-plus me-1"></i>选课
                                     </a>
+                                    {% if user|has_role:'admin' %}
                                     <form method="post" 
                                           action="{% url 'student_delete' s.sno %}"
                                           class="d-inline delete-form"
@@ -389,6 +394,7 @@
                                             <i class="bi bi-trash me-1"></i>删除
                                         </button>
                                     </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>

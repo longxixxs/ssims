@@ -1,7 +1,13 @@
 {% extends 'base.html' %}
+{% load roles %}
 {% block title %}Excel 导入学生{% endblock %}
 
 {% block content %}
+{% if not user|has_role:'admin' %}
+<div class="container-fluid">
+    <div class="alert alert-warning">无权限访问</div>
+</div>
+{% else %}
 <div class="container mt-4">
     <div class="card">
         <div class="card-header">
@@ -29,4 +35,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

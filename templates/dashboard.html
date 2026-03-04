@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load roles %}
 
 {% block title %}系统仪表盘 - 学生信息管理系统{% endblock %}
 
@@ -27,6 +28,96 @@
         </div>
     </div>
 
+    {% if user|has_role:'student' %}
+    <!-- 学生个人统计 -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary me-3">
+                            <i class="bi bi-journal-text"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">已选课程</div>
+                            <h2 class="mb-0">{{ course_count|default:0 }}</h2>
+                            <div class="text-success small mt-1">
+                                <i class="bi bi-check-circle me-1"></i>个人统计
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 pt-0">
+                    {% if stu %}
+                    <a href="/sc/{{ stu.sno }}/" class="small text-primary text-decoration-none">
+                        查看选课 <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success me-3">
+                            <i class="bi bi-award"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">已评分课程</div>
+                            <h2 class="mb-0">{{ graded_count|default:0 }}</h2>
+                            <div class="text-success small mt-1">
+                                <i class="bi bi-clipboard-check me-1"></i>个人统计
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-info bg-opacity-10 text-info me-3">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">平均成绩</div>
+                            <h2 class="mb-0">{{ avg_grade|default:'-' }}</h2>
+                            <div class="text-success small mt-1">
+                                <i class="bi bi-star me-1"></i>个人统计
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning bg-opacity-10 text-warning me-3">
+                            <i class="bi bi-star"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">已修学分</div>
+                            <h2 class="mb-0">{{ total_credit|default:0 }}</h2>
+                            <div class="text-secondary small mt-1">
+                                <i class="bi bi-check2-circle me-1"></i>个人统计
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 pt-0">
+                    <span class="small text-muted">及格学分 {{ passed_credit|default:0 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
     <!-- 关键指标卡片 -->
     <div class="row mb-4">
         <div class="col-md-3 col-sm-6 mb-3">
@@ -125,6 +216,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <div class="row">
         <!-- 最近选课记录 -->
@@ -238,6 +330,7 @@
             </div>
         </div>
 
+        {% if not user|has_role:'student' %}
         <!-- 系统概览 -->
         <div class="col-lg-4 mb-4">
             <div class="card h-100">
@@ -338,6 +431,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 

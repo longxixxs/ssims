@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}  <!-- 加载 static 标签 -->
+{% load roles %}
 {% block title %}班级管理 - 学生信息管理系统{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/class_manage.css' %}">  <!-- 引入外部 CSS -->
@@ -13,9 +14,11 @@
             <h2 class="mb-1">班级管理</h2>
             <p class="text-muted mb-0">管理系统中的所有班级信息</p>
         </div>
+        {% if user|has_role:'admin' %}
         <a href="/classes/add/" class="btn btn-primary">
             <i class="bi bi-plus-circle me-2"></i>新增班级
         </a>
+        {% endif %}
     </div>
 
     <!-- 统计卡片 -->
@@ -146,16 +149,22 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
+                                    {% if user|has_role:'admin' %}
                                     <a href="/classes/edit/{{ c.classno }}/"
                                        class="btn btn-sm btn-outline-primary px-3">
                                         <i class="bi bi-pencil-square me-1"></i>编辑
                                     </a>
-                                    <a href="/classes/delete/{{ c.classno }}/"
-                                       class="btn btn-sm btn-outline-danger px-3 delete-btn"
-                                       data-classname="{{ c.classname }}"
-                                       onclick="return confirmDelete(this)">
-                                        <i class="bi bi-trash me-1"></i>删除
-                                    </a>
+                                    <form method="post"
+                                          action="/classes/delete/{{ c.classno }}/"
+                                          class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-danger px-3 delete-btn"
+                                                data-classname="{{ c.classname }}">
+                                            <i class="bi bi-trash me-1"></i>删除
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                     <a href="/students/?classno={{ c.classno }}"
                                        class="btn btn-sm btn-outline-success px-3">
                                         <i class="bi bi-eye me-1"></i>查看学生
@@ -170,10 +179,12 @@
                                     <i class="bi bi-diagram-3 display-1 text-muted mb-3"></i>
                                     <h4 class="text-muted mb-2">暂无班级数据</h4>
                                     <p class="text-muted mb-3">还没有任何班级信息，点击上方按钮添加新班级</p>
+                                    {% if user|has_role:'admin' %}
                                     <a href="/classes/add/" class="btn btn-primary">
                                         <i class="bi bi-plus-circle me-2"></i>
                                         创建第一个班级
                                     </a>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>

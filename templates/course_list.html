@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load roles %}
 
 {% block title %}课程管理 - 学生信息管理系统{% endblock %}
 
@@ -10,9 +11,11 @@
             <h2 class="mb-1">课程管理</h2>
             <p class="text-muted mb-0">筛选、查看与维护系统中的课程信息</p>
         </div>
+        {% if user|has_role:'admin' %}
         <a href="{% url 'course_add' %}" class="btn btn-primary px-4">
             <i class="bi bi-plus-circle me-2"></i>添加课程
         </a>
+        {% endif %}
     </div>
 
     <!-- 统计卡片（仿系部管理样式） -->
@@ -257,19 +260,26 @@
                                         <i class="bi bi-people me-1"></i>学生
                                     </a>
 
+                                    {% if user|has_role:'admin' %}
                                     <a href="{% url 'course_edit' c.cno %}"
                                        class="btn btn-sm btn-outline-warning px-3"
                                        title="修改课程">
                                         <i class="bi bi-pencil-square me-1"></i>修改
                                     </a>
 
-                                    <a href="{% url 'course_delete' c.cno %}"
-                                       class="btn btn-sm btn-outline-danger px-3 delete-btn"
-                                       title="删除课程"
-                                       data-coursename="{{ c.cname }}"
-                                       onclick="return confirmDelete(this)">
-                                        <i class="bi bi-trash me-1"></i>删除
-                                    </a>
+                                    <form method="post"
+                                          action="{% url 'course_delete' c.cno %}"
+                                          class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-danger px-3 delete-btn"
+                                                title="删除课程"
+                                                data-coursename="{{ c.cname }}"
+                                                onclick="return confirmDelete(this)">
+                                            <i class="bi bi-trash me-1"></i>删除
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -297,9 +307,11 @@
                                         <i class="bi bi-x-circle me-2"></i>清除筛选
                                     </a>
                                     {% endif %}
+                                    {% if user|has_role:'admin' %}
                                     <a href="{% url 'course_add' %}" class="btn btn-primary">
                                         <i class="bi bi-plus-circle me-2"></i>添加课程
                                     </a>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
