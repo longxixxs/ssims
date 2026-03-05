@@ -188,7 +188,7 @@
                                 </span>
                                 <div class="mt-2">
                                     {% if user|has_role:'admin' or user|has_role:'teacher' %}
-                                    <a href="/grade/{{ r.sno.sno }}/{{ course.cno }}/" 
+                                    <a href="{% url 'update_grade' r.sno.sno course.cno %}" 
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil me-1"></i>录入成绩
                                     </a>

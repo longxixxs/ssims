@@ -28,7 +28,16 @@ class StudentSelfOnlyMixin:
     def dispatch(self, request, *args, **kwargs):
         if is_student(request.user):
             sno = kwargs.get('sno') or request.GET.get('sno')
-            if sno and request.user.username != sno:
+            own_sno = None
+            try:
+                profile = request.user.student_profile
+            except Exception:
+                profile = None
+            if profile:
+                own_sno = profile.sno
+            if own_sno is None:
+                own_sno = request.user.username
+            if sno and own_sno != sno:
                 messages.error(request, '无权限访问')
                 return redirect('/')
         return super().dispatch(request, *args, **kwargs)

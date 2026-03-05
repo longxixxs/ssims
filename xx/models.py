@@ -20,12 +20,13 @@ class student(models.Model):
         ('boy', '男'),
     )
     sno = models.CharField(max_length=10, primary_key=True, null=False)
+    user = models.OneToOneField(User, null=True, blank=True, on_delete=models.CASCADE, related_name='student_profile')
     sname = models.CharField(max_length=10, null=False)
     sex = models.CharField(max_length=4, choices=stusex, default='girl')
     native = models.CharField(max_length=20, blank=True)
     age = models.IntegerField(null=True, blank=True)
     classno = models.ForeignKey(cl, on_delete=models.CASCADE)
-    entime = models.DateTimeField(null=True, auto_now=True)
+    entime = models.DateTimeField(null=True, auto_now_add=True)
     semester = models.IntegerField(null=True, blank=True)
     home = models.CharField(max_length=40, blank=True)
     telephone = models.CharField(max_length=20, blank=True)
@@ -50,6 +51,11 @@ class sc(models.Model):
     sno = models.ForeignKey(student, on_delete=models.CASCADE)
     cno = models.ForeignKey(course, on_delete=models.CASCADE)
     grade = models.FloatField(null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['sno', 'cno'], name='uniq_student_course'),
+        ]
 
 
 class AuditLog(models.Model):
