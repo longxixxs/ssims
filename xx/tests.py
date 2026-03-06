@@ -404,6 +404,17 @@ class StudentLifecycleAndImportTests(BaseTestCase):
         self.assertIn(self.stu.sno, exported_snos)
         self.assertNotIn("S2200", exported_snos)
 
+    def test_student_list_age_sort_places_empty_values_last(self):
+        student.objects.create(sno="S2102", sname="学生2102", sex="girl", age=18, classno=self.cls)
+        student.objects.create(sno="S2103", sname="学生2103", sex="boy", age=20, classno=self.cls)
+
+        self.assertTrue(self.client.login(username="admin_stu", password=DEFAULT_PASSWORD))
+        resp = self.client.get(reverse("student_list"), {"order": "age", "direction": "asc"})
+
+        self.assertEqual(resp.status_code, 200)
+        ordered_snos = [item.sno for item in resp.context["students"]]
+        self.assertEqual(ordered_snos[:3], ["S2102", "S2103", "S2101"])
+
 
 class AcademicScopeAndWorkflowTests(BaseTestCase):
     def setUp(self):

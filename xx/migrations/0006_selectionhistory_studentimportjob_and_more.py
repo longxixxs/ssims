@@ -213,7 +213,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='sc',
-            constraint=models.CheckConstraint(check=models.Q(('grade__isnull', True), models.Q(('grade__gte', 0), ('grade__lte', 100)), _connector='OR'), name='sc_grade_between_0_100'),
+            constraint=models.CheckConstraint(condition=models.Q(('grade__isnull', True), models.Q(('grade__gte', 0), ('grade__lte', 100)), _connector='OR'), name='sc_grade_between_0_100'),
         ),
         migrations.AddField(
             model_name='selectionhistory',
@@ -270,3 +270,4 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(backfill_account_state_and_selection_status, migrations.RunPython.noop),
     ]
+

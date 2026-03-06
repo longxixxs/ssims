@@ -4,11 +4,11 @@
 
 ## 当前状态
 
-- 推荐 Python 版本：`3.11`
-- `requirements.txt` 固定 Django：`5.2.7`
+- 推荐 Python 版本：`3.13`
+- Django 版本：`6.0.3`
 - 默认数据库：`SQLite`（`db.sqlite3`）
 - 当前最新业务迁移：`xx.0006_selectionhistory_studentimportjob_and_more`
-- 本地验证结果：`py -3.11 manage.py test`，`40` 项测试全部通过
+- 本地验证结果：`py -3.13 manage.py test`，`40` 项测试全部通过
 
 ## 主要功能
 
@@ -163,7 +163,7 @@ ssims/
 ### 1. 创建虚拟环境
 
 ```powershell
-py -3.11 -m venv venv
+py -3.13 -m venv venv
 .\venv\Scripts\Activate.ps1
 ```
 
@@ -199,7 +199,7 @@ python manage.py makemigrations
 如果未激活虚拟环境，可直接使用：
 
 ```powershell
-py -3.11 manage.py test
+py -3.13 manage.py test
 ```
 
 ## 当前测试覆盖

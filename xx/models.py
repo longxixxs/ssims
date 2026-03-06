@@ -190,7 +190,7 @@ class sc(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['sno', 'cno'], name='uniq_student_course'),
             models.CheckConstraint(
-                check=Q(grade__isnull=True) | (Q(grade__gte=0) & Q(grade__lte=100)),
+                condition=Q(grade__isnull=True) | (Q(grade__gte=0) & Q(grade__lte=100)),
                 name='sc_grade_between_0_100',
             ),
         ]
@@ -295,3 +295,4 @@ class AuditLog(models.Model):
     before = models.JSONField(null=True, blank=True)
     after = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+

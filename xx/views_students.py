@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
 from django.db import transaction
-from django.db.models import Avg, Sum
+from django.db.models import Avg, F, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -139,10 +139,12 @@ class StudentListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
         }
 
         order_field = order_map.get(order, 'sno')
-        if direction == 'desc':
-            order_field = '-' + order_field
+        ordering = [F(order_field).desc(nulls_last=True)] if direction == 'desc' else [F(order_field).asc(nulls_last=True)]
+        if order_field != 'sno':
+            secondary = F('sno').desc() if direction == 'desc' else F('sno').asc()
+            ordering.append(secondary)
 
-        return queryset.order_by(order_field)
+        return queryset.order_by(*ordering)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
