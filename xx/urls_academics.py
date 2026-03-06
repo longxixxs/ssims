@@ -14,6 +14,9 @@ from xx.views_academics import (
     DepartDeleteView,
     DepartEditView,
     DepartListView,
+    DropCourseView,
+    MarkRetakeView,
+    PublishGradeView,
     SelectCourseView,
     StudentCourseView,
     UpdateGradeView,
@@ -39,4 +42,7 @@ urlpatterns = [
     path('select/<str:sno>/', SelectCourseView.as_view(), name='select_course'),
     path('sc/<str:sno>/', StudentCourseView.as_view(), name='student_course'),
     path('sc/<str:sno>/<str:cno>/grade/', UpdateGradeView.as_view(), name='update_grade'),
+    path('sc/<str:sno>/<str:cno>/publish/', PublishGradeView.as_view(), name='publish_grade'),
+    path('sc/<str:sno>/<str:cno>/retake/', MarkRetakeView.as_view(), name='mark_retake'),
+    path('sc/<str:sno>/<str:cno>/drop/', DropCourseView.as_view(), name='drop_course'),
 ]

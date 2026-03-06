@@ -1,10 +1,24 @@
+from datetime import date, datetime
+
 from django.forms.models import model_to_dict
 
 from .models import AuditLog
 
 
+def _json_safe(value):
+    if isinstance(value, dict):
+        return {key: _json_safe(val) for key, val in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(val) for val in value]
+    if isinstance(value, tuple):
+        return [_json_safe(val) for val in value]
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    return value
+
+
 def serialize_instance(instance, fields=None):
-    return model_to_dict(instance, fields=fields)
+    return _json_safe(model_to_dict(instance, fields=fields))
 
 
 def log_action(request, action, instance, before=None, after=None):

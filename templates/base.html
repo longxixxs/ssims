@@ -20,10 +20,12 @@
     
     <!-- 自定义样式（从内联抽离） -->
     <link href="{% static 'css/base.css' %}" rel="stylesheet">
+    <link href="{% static 'css/components.css' %}" rel="stylesheet">
+    <link href="{% static 'css/workspace.css' %}" rel="stylesheet">
     
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}app-body{% endblock %}">
 
 <!-- 全局加载动画（优化用户体验） -->
 <div id="globalLoading" class="global-loading">
@@ -39,7 +41,7 @@
                 aria-expanded="false">
             <i class="bi bi-list"></i>
         </button>
-        <a href="/" class="brand" aria-label="首页">
+        <a href="{% url 'dashboard' %}" class="brand" aria-label="首页">
             <div class="brand-icon">
                 <i class="bi bi-mortarboard-fill"></i>
             </div>
@@ -86,12 +88,15 @@
     <!-- 主内容 -->
     <main class="main-content" role="main">
         <!-- 页面内容 -->
-        {% block content %}{% endblock %}
+        <div class="page-shell">
+            {% include 'partials/messages.html' %}
+            {% block content %}{% endblock %}
+        </div>
 
         <!-- 页脚 -->
-        <footer class="mt-5 pt-4 text-center text-muted small border-top">
+        <footer class="app-footer small">
             <div>学生信息管理系统 &copy; {% now "Y" %}</div>
-            <div class="mt-1">v2.0 | Powered by Django</div>
+            <div class="mt-1">统一界面与业务工作台</div>
         </footer>
     </main>
 </div>
@@ -102,6 +107,7 @@
 <!-- JavaScript -->
 <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'js/base.js' %}"></script>
+<script src="{% static 'js/form_utils.js' %}"></script>
 
 {% block extra_js %}{% endblock %}
 

@@ -1,160 +1,251 @@
-// ==================== 页面加载完成 ====================
-document.addEventListener('DOMContentLoaded', function() {
-    // 初始化所有功能
+﻿document.addEventListener('DOMContentLoaded', function () {
     initSidebar();
-    initPageLoad();
-    initLinkAnimations();
-    initCardHover();
-    initAutoHideMessages();
+    initReadyState();
+    initAutoHideAlerts();
+    initConfirmActions();
+    initValidation();
+    initSubmitState();
+    initAutoSubmitControls();
+    initPasswordToggles();
+    initTooltips();
+    initRowLinks();
+    initAutofocus();
 });
 
-// ==================== 侧边栏切换 ====================
 function initSidebar() {
     const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebar');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
+    if (!menuToggle || !sidebar || !sidebarOverlay) {
+        return;
+    }
 
-    if (!menuToggle || !sidebar) return;
-
-    menuToggle.addEventListener('click', function() {
-        const isExpanded = sidebar.classList.toggle('show');
-        sidebarOverlay.classList.toggle('show');
-
-        // 更新 ARIA 属性
-        this.setAttribute('aria-expanded', isExpanded);
-
-        // 切换图标
-        const icon = this.querySelector('i');
-        icon.className = isExpanded ? 'bi bi-x' : 'bi bi-list';
-    });
-
-    // 点击遮罩关闭
-    sidebarOverlay.addEventListener('click', function() {
+    function closeSidebar() {
         sidebar.classList.remove('show');
-        this.classList.remove('show');
+        sidebarOverlay.classList.remove('show');
         menuToggle.setAttribute('aria-expanded', 'false');
-        menuToggle.querySelector('i').className = 'bi bi-list';
+        const icon = menuToggle.querySelector('i');
+        if (icon) {
+            icon.className = 'bi bi-list';
+        }
+    }
+
+    menuToggle.addEventListener('click', function () {
+        const opened = sidebar.classList.toggle('show');
+        sidebarOverlay.classList.toggle('show', opened);
+        menuToggle.setAttribute('aria-expanded', String(opened));
+        const icon = menuToggle.querySelector('i');
+        if (icon) {
+            icon.className = opened ? 'bi bi-x' : 'bi bi-list';
+        }
     });
 
-    // ESC 键关闭
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && sidebar.classList.contains('show')) {
-            sidebar.classList.remove('show');
-            sidebarOverlay.classList.remove('show');
-            menuToggle.setAttribute('aria-expanded', 'false');
-            menuToggle.querySelector('i').className = 'bi bi-list';
+    sidebarOverlay.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeSidebar();
         }
     });
 }
 
-// ==================== 页面加载动画 ====================
-function initPageLoad() {
+function initReadyState() {
     const loading = document.getElementById('globalLoading');
-
-    window.addEventListener('load', function() {
+    document.body.classList.add('loaded');
+    window.addEventListener('load', function () {
         document.body.classList.add('loaded');
-
-        // 隐藏加载动画
         if (loading) {
             loading.classList.remove('show');
         }
     });
 }
 
-// ==================== 链接点击动画 ====================
-function initLinkAnimations() {
-    document.querySelectorAll('a:not(.no-animation)').forEach(link => {
-        link.addEventListener('click', function(e) {
-            // 跳过登出和外部链接
-            if (this.href.includes('logout') || this.target === '_blank') return;
+function initAutoHideAlerts() {
+    document.querySelectorAll('.alert').forEach(function (alertEl) {
+        setTimeout(function () {
+            try {
+                bootstrap.Alert.getOrCreateInstance(alertEl).close();
+            } catch (error) {
+                alertEl.remove();
+            }
+        }, 4500);
+    });
+}
 
-            this.style.transform = 'scale(0.98)';
-            setTimeout(() => {
-                this.style.transform = '';
-            }, 150);
+function initConfirmActions() {
+    document.addEventListener('click', function (event) {
+        const confirmLink = event.target.closest('a[data-confirm], button[data-confirm]:not([type="submit"])');
+        if (!confirmLink) {
+            return;
+        }
+        const message = confirmLink.dataset.confirm;
+        if (message && !window.confirm(message)) {
+            event.preventDefault();
+        }
+    });
+
+    document.addEventListener('submit', function (event) {
+        const form = event.target;
+        const submitter = event.submitter;
+        const message = (submitter && submitter.dataset.confirm) || form.dataset.confirm;
+        if (message && !window.confirm(message)) {
+            event.preventDefault();
+        }
+    });
+}
+
+function initValidation() {
+    document.addEventListener('submit', function (event) {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement) || !form.classList.contains('needs-validation')) {
+            return;
+        }
+
+        if (form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        form.classList.add('was-validated');
+
+        const invalidField = form.querySelector(':invalid');
+        if (invalidField && typeof invalidField.focus === 'function') {
+            invalidField.focus({ preventScroll: true });
+            if (typeof invalidField.scrollIntoView === 'function') {
+                invalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    });
+}
+
+function initSubmitState() {
+    document.addEventListener('submit', function (event) {
+        if (event.defaultPrevented) {
+            return;
+        }
+
+        const submitter = event.submitter;
+        if (!submitter || submitter.dataset.skipBusy === 'true') {
+            return;
+        }
+        if (submitter.disabled) {
+            event.preventDefault();
+            return;
+        }
+
+        const busyText = submitter.dataset.submitText;
+        if (!busyText) {
+            return;
+        }
+
+        submitter.dataset.originalHtml = submitter.innerHTML;
+        submitter.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>' + busyText;
+        submitter.disabled = true;
+    });
+}
+
+function initAutoSubmitControls() {
+    document.querySelectorAll('[data-auto-submit]').forEach(function (control) {
+        const form = control.form || document.getElementById(control.dataset.autoSubmitForm || '');
+        if (!form) {
+            return;
+        }
+
+        const eventName = control.dataset.autoSubmitEvent || 'change';
+        const delay = Number(control.dataset.autoSubmitDelay || 0);
+        let timer = null;
+
+        control.addEventListener(eventName, function () {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(function () {
+                form.requestSubmit();
+            }, delay);
         });
     });
 }
 
-// ==================== 卡片悬停效果 ====================
-function initCardHover() {
-    document.querySelectorAll('.card').forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-5px)';
+function initPasswordToggles() {
+    document.querySelectorAll('.password-toggle').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const input = this.closest('.input-group')?.querySelector('input');
+            if (!input) {
+                return;
+            }
+            const shown = input.type === 'text';
+            input.type = shown ? 'password' : 'text';
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.className = shown ? 'bi bi-eye' : 'bi bi-eye-slash';
+            }
+        });
+    });
+}
+
+function initTooltips() {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+        bootstrap.Tooltip.getOrCreateInstance(element);
+    });
+}
+
+function shouldIgnoreRowLinkTrigger(target) {
+    return Boolean(target && target.closest('a, button, form, input, select, textarea, label'));
+}
+
+function navigateToRowLink(row) {
+    const target = row.dataset.rowLink;
+    if (target) {
+        window.location.href = target;
+    }
+}
+
+function initRowLinks() {
+    document.querySelectorAll('[data-row-link]').forEach(function (row) {
+        if (!row.hasAttribute('tabindex')) {
+            row.tabIndex = 0;
+        }
+        if (!row.hasAttribute('role')) {
+            row.setAttribute('role', 'link');
+        }
+
+        row.addEventListener('click', function (event) {
+            if (shouldIgnoreRowLinkTrigger(event.target)) {
+                return;
+            }
+            navigateToRowLink(row);
         });
 
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = '';
+        row.addEventListener('keydown', function (event) {
+            if (shouldIgnoreRowLinkTrigger(event.target)) {
+                return;
+            }
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                navigateToRowLink(row);
+            }
         });
     });
 }
 
-// ==================== 自动隐藏消息提示 ====================
-function initAutoHideMessages() {
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-        setTimeout(() => {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
-        }, 5000); // 5 秒后自动关闭
+function initAutofocus() {
+    document.querySelectorAll('form[data-autofocus-first]').forEach(function (form) {
+        const firstEditable = form.querySelector('input:not([readonly]):not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])');
+        if (firstEditable && typeof firstEditable.focus === 'function') {
+            firstEditable.focus();
+        }
     });
 }
 
-// ==================== 全局 Toast 通知（可选） ====================
-function showToast(message, type = 'info') {
-    const toastContainer = document.getElementById('toastContainer');
-    if (!toastContainer) return;
-
-    const toastId = 'toast-' + Date.now();
-    const iconMap = {
-        success: 'check-circle',
-        error: 'exclamation-triangle',
-        warning: 'exclamation-circle',
-        info: 'info-circle'
-    };
-
-    const toastHTML = `
-        <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert">
-            <div class="d-flex">
-                <div class="toast-body">
-                    <i class="bi bi-${iconMap[type]} me-2"></i>
-                    ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        </div>
-    `;
-
-    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-    const toastElement = document.getElementById(toastId);
-    const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
-    toast.show();
-
-    // 移除 DOM
-    toastElement.addEventListener('hidden.bs.toast', function() {
-        this.remove();
-    });
-}
-
-// ==================== 全局加载状态 ====================
 function showLoading() {
     const loading = document.getElementById('globalLoading');
-    if (loading) loading.classList.add('show');
+    if (loading) {
+        loading.classList.add('show');
+    }
 }
 
 function hideLoading() {
     const loading = document.getElementById('globalLoading');
-    if (loading) loading.classList.remove('show');
+    if (loading) {
+        loading.classList.remove('show');
+    }
 }
-
-// ==================== AJAX 请求拦截（可选） ====================
-// 为所有 fetch 请求添加加载动画
-(function() {
-    const originalFetch = window.fetch;
-    window.fetch = function(...args) {
-        showLoading();
-        return originalFetch.apply(this, args).finally(() => {
-            hideLoading();
-        });
-    };
-})();

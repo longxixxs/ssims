@@ -2,33 +2,37 @@
 {% block title %}审计日志 - 学生信息管理系统{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
-        <div class="mb-3 mb-md-0">
-            <div class="d-flex align-items-center">
-                <div class="icon-container me-3">
-                    <i class="bi bi-journal-text"></i>
-                </div>
-                <div>
-                    <h2 class="mb-1">审计日志</h2>
-                    <p class="text-muted mb-0">关键数据的变更记录</p>
+<div class="container-fluid workspace-page">
+    <div class="page-header">
+        <div class="page-header-main">
+            <div class="icon-container"><i class="bi bi-journal-check"></i></div>
+            <div class="page-header-copy">
+                <div class="page-kicker"><i class="bi bi-shield-check"></i>Audit Trail</div>
+                <h2>审计日志</h2>
+                <p class="text-muted">关键数据的变更记录，便于回溯操作者、时间和对象范围。</p>
+                <div class="badge-stack">
+                    <span class="badge bg-primary-subtle border"><i class="bi bi-clock-history"></i>总记录 {{ page_obj.paginator.count }}</span>
+                    <span class="badge bg-info-subtle border"><i class="bi bi-funnel"></i>支持多条件筛选</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card mb-4">
+    <div class="card filter-card">
+        <div class="card-header">
+            <div>
+                <div class="fw-semibold">筛选条件</div>
+                <div class="text-muted small">按操作类型、模型和操作者缩小结果范围。</div>
+            </div>
+        </div>
         <div class="card-body p-4">
-            <h5 class="card-title mb-3">
-                <i class="bi bi-filter me-2 text-primary"></i>筛选
-            </h5>
             <form method="get" class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">操作类型</label>
                     <select name="action" class="form-select">
                         <option value="">全部</option>
                         {% for value, label in action_choices %}
-                            <option value="{{ value }}" {% if request.GET.action == value %}selected{% endif %}>{{ label }}</option>
+                        <option value="{{ value }}" {% if request.GET.action == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -37,7 +41,7 @@
                     <select name="model" class="form-select">
                         <option value="">全部</option>
                         {% for name in model_names %}
-                            <option value="{{ name }}" {% if request.GET.model == name %}selected{% endif %}>{{ name }}</option>
+                        <option value="{{ name }}" {% if request.GET.model == name %}selected{% endif %}>{{ name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -46,14 +50,24 @@
                     <input name="actor" class="form-control" value="{{ request.GET.actor }}" placeholder="用户名">
                 </div>
                 <div class="col-md-3 d-flex align-items-end gap-2">
-                    <button type="submit" class="btn btn-primary">筛选</button>
-                    <a href="/audit/" class="btn btn-outline-secondary">重置</a>
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i>筛选</button>
+                    <a href="{% url 'audit_list' %}" class="btn btn-outline-secondary w-100"><i class="bi bi-arrow-clockwise"></i>重置</a>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card">
+    <div class="card table-card">
+        <div class="card-header">
+            <div>
+                <div class="fw-semibold">日志列表</div>
+                <div class="text-muted small">当前页展示最近匹配到的审计事件。</div>
+            </div>
+            <div class="table-meta">
+                <span>本页 {{ logs|length }} 条</span>
+                <span>总计 {{ page_obj.paginator.count }} 条</span>
+            </div>
+        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
@@ -64,30 +78,36 @@
                             <th>模型</th>
                             <th>对象</th>
                             <th>操作者</th>
-                            <th class="text-center">IP</th>
+                            <th class="text-center pe-4">IP</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for log in logs %}
-                        <tr>
+                        <tr class="record-row">
                             <td class="ps-4">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
                             <td>
                                 {% if log.action == 'create' %}
-                                    <span class="badge bg-success">新增</span>
+                                <span class="badge bg-success-subtle border"><i class="bi bi-plus-circle"></i>新增</span>
                                 {% elif log.action == 'update' %}
-                                    <span class="badge bg-warning text-dark">修改</span>
+                                <span class="badge bg-warning-subtle border text-warning"><i class="bi bi-pencil-square"></i>修改</span>
                                 {% else %}
-                                    <span class="badge bg-danger">删除</span>
+                                <span class="badge bg-danger-subtle border text-danger"><i class="bi bi-archive"></i>删除</span>
                                 {% endif %}
                             </td>
                             <td>{{ log.model_name }}</td>
                             <td>{{ log.object_repr }}</td>
                             <td>{{ log.actor_name|default:"-" }}</td>
-                            <td class="text-center">{{ log.ip|default:"-" }}</td>
+                            <td class="text-center pe-4">{{ log.ip|default:"-" }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">暂无审计记录</td>
+                            <td colspan="6" class="py-5">
+                                <div class="empty-state">
+                                    <i class="bi bi-journal-x display-1 text-muted"></i>
+                                    <h5 class="text-muted mb-0">暂无审计记录</h5>
+                                    <p class="text-muted mb-0">当前筛选条件下没有可显示的日志。</p>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -96,10 +116,8 @@
         </div>
         {% if logs %}
         <div class="card-footer bg-transparent border-top">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="text-muted">
-                    共 {{ page_obj.paginator.count }} 条记录
-                </div>
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="text-muted">共 {{ page_obj.paginator.count }} 条记录</div>
                 <nav aria-label="审计日志分页">
                     <ul class="pagination pagination-sm mb-0">
                         <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
@@ -109,11 +127,11 @@
                         </li>
                         {% for page_num in paginator.page_range %}
                             {% if page_num == page_obj.number %}
-                                <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+                            <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
                             {% elif page_num >= page_obj.number|add:-2 and page_num <= page_obj.number|add:2 %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ page_num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ page_num }}</a>
-                                </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ page_num }}</a>
+                            </li>
                             {% endif %}
                         {% endfor %}
                         <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">

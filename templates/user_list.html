@@ -1,114 +1,206 @@
-{% extends 'base.html' %}
-{% load roles %}
+﻿{% extends 'base.html' %}
 
-{% block title %}用户管理 - 学生信息管理系统{% endblock %}
+{% block title %}用户管理{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
-        <div class="mb-3 mb-md-0">
-            <div class="d-flex align-items-center">
-                <div class="icon-container me-3">
-                    <i class="bi bi-person-gear"></i>
-                </div>
-                <div>
-                    <h2 class="mb-1">用户管理</h2>
-                    <p class="text-muted mb-0">创建用户、分配角色与学生档案</p>
+<div class="container-fluid workspace-page">
+    <div class="page-header">
+        <div class="page-header-main">
+            <div class="icon-container"><i class="bi bi-people-fill"></i></div>
+            <div class="page-header-copy">
+                <div class="page-kicker"><i class="bi bi-person-gear"></i>User Control</div>
+                <h2>用户管理</h2>
+                <p class="text-muted">统一维护账号状态、角色分配、学生档案绑定和教师归属范围。</p>
+                <div class="badge-stack">
+                    <span class="badge badge-soft-primary"><i class="bi bi-people"></i>总用户 {{ page_obj.paginator.count }}</span>
+                    <span class="badge bg-warning-subtle border text-warning"><i class="bi bi-hourglass-split"></i>待审核 {{ pending_count }}</span>
+                    <span class="badge bg-info-subtle border"><i class="bi bi-funnel"></i>当前结果 {{ user_rows|length }}</span>
                 </div>
             </div>
         </div>
-        {% if user|has_role:'admin' %}
-        <a href="/users/add/" class="btn btn-primary px-4">
-            <i class="bi bi-plus-circle me-2"></i>新增用户
-        </a>
-        {% endif %}
+        <div class="page-header-actions">
+            <a href="{% url 'pending_approval_list' %}" class="btn btn-outline-primary">
+                <i class="bi bi-list-check"></i>待审核队列
+                {% if pending_count %}
+                <span class="badge bg-primary ms-2">{{ pending_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{% url 'user_add' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i>新增用户</a>
+        </div>
     </div>
 
-    <div class="card mb-4">
+    <div class="card filter-card">
+        <div class="card-header">
+            <div>
+                <div class="fw-semibold">筛选条件</div>
+                <div class="text-muted small">支持按用户名、昵称、角色和账号状态过滤列表。</div>
+            </div>
+            {% if q or role or status %}
+            <div class="table-actions">
+                <span class="badge bg-primary-subtle border">已启用筛选</span>
+                <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-clockwise"></i>重置</a>
+            </div>
+            {% endif %}
+        </div>
         <div class="card-body p-4">
-            <form method="get" class="needs-validation" novalidate>
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-6 col-lg-4">
-                        <label for="q" class="form-label fw-semibold">
-                            <i class="bi bi-search me-1"></i>关键字
-                        </label>
-                        <input type="text" id="q" name="q" class="form-control" value="{{ q }}"
-                               placeholder="用户名或昵称">
+            <form method="get" class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">关键字</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" name="q" class="form-control" value="{{ q }}" placeholder="用户名或昵称">
                     </div>
-                    <div class="col-md-6 col-lg-4">
-                        <label for="role" class="form-label fw-semibold">
-                            <i class="bi bi-people me-1"></i>角色筛选
-                        </label>
-                        <select id="role" name="role" class="form-select">
-                            <option value="">全部角色</option>
-                            {% for r in roles %}
-                            <option value="{{ r }}" {% if role == r %}selected{% endif %}>{{ r }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-12 col-lg-4">
-                        <div class="d-flex justify-content-end gap-2">
-                            <a href="/users/" class="btn btn-outline-secondary px-4">
-                                <i class="bi bi-arrow-clockwise me-2"></i>重置
-                            </a>
-                            <button type="submit" class="btn btn-primary px-4">
-                                <i class="bi bi-search me-2"></i>查询
-                            </button>
-                        </div>
-                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">角色</label>
+                    <select name="role" class="form-select">
+                        <option value="">全部</option>
+                        {% for r in roles %}
+                        <option value="{{ r }}" {% if role == r %}selected{% endif %}>{{ r }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">状态</label>
+                    <select name="status" class="form-select">
+                        <option value="">全部</option>
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i>查询</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon"><i class="bi bi-person-vcard"></i></div>
+                        <div>
+                            <div class="text-muted small">当前页用户</div>
+                            <div class="h3 mb-0">{{ user_rows|length }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon"><i class="bi bi-shield-lock"></i></div>
+                        <div>
+                            <div class="text-muted small">状态筛选</div>
+                            <div class="h3 mb-0">{% if status %}{{ status }}{% else %}全部{% endif %}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon"><i class="bi bi-person-badge"></i></div>
+                        <div>
+                            <div class="text-muted small">角色筛选</div>
+                            <div class="h3 mb-0">{% if role %}{{ role }}{% else %}全部{% endif %}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card table-card">
+        <div class="card-header">
+            <div>
+                <div class="fw-semibold">账号清单</div>
+                <div class="text-muted small">按页展示当前匹配到的账号、角色、档案和教师归属信息。</div>
+            </div>
+            <div class="table-meta">
+                <span>第 {{ page_obj.number }} / {{ paginator.num_pages }} 页</span>
+                <span>总计 {{ page_obj.paginator.count }} 个账号</span>
+            </div>
+        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
-                            <th class="ps-4">用户名</th>
-                            <th>昵称</th>
+                            <th class="ps-4">用户</th>
+                            <th>状态</th>
                             <th>角色</th>
                             <th>学生档案</th>
-                            <th class="text-center">操作</th>
+                            <th>教师归属</th>
+                            <th class="text-center pe-4">操作</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in user_rows %}
-                        <tr>
+                        <tr class="record-row">
                             <td class="ps-4">
-                                <div class="fw-semibold">{{ row.user.username }}</div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="student-icon"><i class="bi bi-person-circle"></i></div>
+                                    <div>
+                                        <div class="fw-semibold">{{ row.user.username }}</div>
+                                        <div class="text-muted small">{{ row.user.first_name|default:"未设置昵称" }}</div>
+                                    </div>
+                                </div>
                             </td>
-                            <td>{{ row.user.first_name|default:"-" }}</td>
                             <td>
-                                {% if row.user.groups.all %}
-                                    {% for g in row.user.groups.all %}
-                                        <span class="badge bg-primary bg-opacity-10 text-primary me-1">{{ g.name }}</span>
-                                    {% empty %}
-                                        <span class="text-muted">无</span>
-                                    {% endfor %}
+                                {% if row.status == 'active' %}
+                                <span class="badge bg-success-subtle border"><i class="bi bi-check-circle"></i>启用</span>
+                                {% elif row.status == 'pending' %}
+                                <span class="badge bg-warning-subtle border text-warning"><i class="bi bi-hourglass-split"></i>待审核</span>
                                 {% else %}
-                                    <span class="text-muted">无</span>
+                                <span class="badge bg-secondary-subtle border text-secondary"><i class="bi bi-slash-circle"></i>停用</span>
                                 {% endif %}
+                            </td>
+                            <td>
+                                <div class="badge-stack">
+                                    {% for g in row.user.groups.all %}
+                                    <span class="badge bg-primary-subtle text-primary border">{{ g.name }}</span>
+                                    {% empty %}
+                                    <span class="text-muted small">未分配</span>
+                                    {% endfor %}
+                                </div>
                             </td>
                             <td>
                                 {% if row.has_student %}
-                                    <span class="badge bg-success bg-opacity-10 text-success">已创建</span>
+                                <span class="badge bg-success-subtle text-success border"><i class="bi bi-person-check"></i>有效档案</span>
                                 {% else %}
-                                    <span class="badge bg-warning bg-opacity-10 text-warning">未创建</span>
+                                <span class="badge bg-light text-dark border"><i class="bi bi-person-dash"></i>未绑定</span>
                                 {% endif %}
                             </td>
-                            <td class="text-center">
-                                <a href="/users/{{ row.user.id }}/edit/" class="btn btn-sm btn-outline-primary px-3">
-                                    <i class="bi bi-pencil-square me-1"></i>编辑
-                                </a>
+                            <td>
+                                <div class="d-grid gap-1">
+                                    <span class="text-muted small">班级 {{ row.teacher_class_count }} 个</span>
+                                    <span class="text-muted small">课程 {{ row.teacher_course_count }} 门</span>
+                                </div>
+                            </td>
+                            <td class="text-center pe-4">
+                                <a href="{% url 'user_edit' row.user.id %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square"></i>编辑</a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center py-5">
-                                <div class="text-muted">暂无用户</div>
+                            <td colspan="6" class="py-5">
+                                <div class="empty-state">
+                                    <i class="bi bi-people display-1 text-muted"></i>
+                                    <h5 class="text-muted mb-0">暂无用户</h5>
+                                    <p class="text-muted mb-0">当前筛选条件下没有账号记录。</p>
+                                    <div class="d-flex gap-2 flex-wrap justify-content-center">
+                                        <a href="{% url 'user_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-clockwise"></i>清空筛选</a>
+                                        <a href="{% url 'user_add' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i>新增用户</a>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -116,6 +208,12 @@
                 </table>
             </div>
         </div>
+        {% if user_rows %}
+        <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <span class="text-muted">当前页显示 <strong>{{ user_rows|length }}</strong> 个账号。</span>
+            <span class="text-muted">待审核账号 <strong>{{ pending_count }}</strong> 个。</span>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

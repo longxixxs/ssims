@@ -1,89 +1,81 @@
-{% extends 'base.html' %}
-{% load static %}  <!-- 加载 static 标签 -->
+﻿{% extends 'base.html' %}
 {% load roles %}
+
 {% block title %}班级管理 - 学生信息管理系统{% endblock %}
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/class_manage.css' %}">  <!-- 引入外部 CSS -->
-{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- 页面标题和操作栏 -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-1">班级管理</h2>
-            <p class="text-muted mb-0">管理系统中的所有班级信息</p>
+<div class="container-fluid workspace-page">
+    <div class="page-header">
+        <div class="page-header-main">
+            <div class="icon-container"><i class="bi bi-diagram-3"></i></div>
+            <div class="page-header-copy">
+                <div class="page-kicker"><i class="bi bi-diagram-3"></i>Class Directory</div>
+                <h2>班级管理</h2>
+                <p class="text-muted">维护班级结构、所属系部和学生分布。</p>
+                <div class="badge-stack">
+                    <span class="badge badge-soft-primary"><i class="bi bi-diagram-3"></i>班级 {{ class_count|default:'0' }} 个</span>
+                    <span class="badge bg-info-subtle border"><i class="bi bi-people"></i>学生 {{ student_count|default:'0' }} 人</span>
+                    <span class="badge bg-success-subtle border"><i class="bi bi-building"></i>系部 {{ depart_count|default:'0' }} 个</span>
+                </div>
+            </div>
         </div>
-        {% if user|has_role:'admin' %}
-        <a href="/classes/add/" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-2"></i>新增班级
-        </a>
-        {% endif %}
+        <div class="page-header-actions">
+            {% if user|has_role:'admin' %}
+            <a href="{% url 'class_add' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i>新增班级
+            </a>
+            {% endif %}
+        </div>
     </div>
 
-    <!-- 统计卡片 -->
-    <div class="row mb-4">
+    <div class="row g-3">
         <div class="col-md-3">
-            <div class="card">
+            <div class="card stat-card h-100">
                 <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-primary bg-opacity-10 text-primary rounded p-3 me-3">
-                            <i class="bi bi-diagram-3 fs-4"></i>
-                        </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon"><i class="bi bi-diagram-3"></i></div>
                         <div>
-                            <div class="text-muted small mb-1">班级总数</div>
-                            <div class="h4 mb-0">{{ class_count|default:"0" }}</div>
+                            <div class="text-muted small">班级总数</div>
+                            <div class="h3 mb-0">{{ class_count|default:'0' }}</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card stat-card h-100">
                 <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-success bg-opacity-10 text-success rounded p-3 me-3">
-                            <i class="bi bi-people fs-4"></i>
-                        </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon"><i class="bi bi-people"></i></div>
                         <div>
-                            <div class="text-muted small mb-1">学生总数</div>
-                            <div class="h4 mb-0">{{ student_count|default:"0" }}</div>
+                            <div class="text-muted small">学生总数</div>
+                            <div class="h3 mb-0">{{ student_count|default:'0' }}</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card stat-card h-100">
                 <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-info bg-opacity-10 text-info rounded p-3 me-3">
-                            <i class="bi bi-building fs-4"></i>
-                        </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon"><i class="bi bi-building"></i></div>
                         <div>
-                            <div class="text-muted small mb-1">系部数量</div>
-                            <div class="h4 mb-0">{{ depart_count|default:"0" }}</div>
+                            <div class="text-muted small">系部数量</div>
+                            <div class="h3 mb-0">{{ depart_count|default:'0' }}</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card stat-card h-100">
                 <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-warning bg-opacity-10 text-warning rounded p-3 me-3">
-                            <i class="bi bi-person-plus fs-4"></i>
-                        </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon"><i class="bi bi-person-plus"></i></div>
                         <div>
-                            <div class="text-muted small mb-1">平均每班人数</div>
-                            <div class="h4 mb-0">
-                                {% if class_count > 0 %}
-                                    {{ student_count|floatformat:"0" }}
-                                {% else %}
-                                    0
-                                {% endif %}
-                            </div>
+                            <div class="text-muted small">平均每班人数</div>
+                            <div class="h3 mb-0">{% if class_count > 0 %}{% widthratio student_count class_count 1 %}{% else %}0{% endif %}</div>
                         </div>
                     </div>
                 </div>
@@ -91,8 +83,17 @@
         </div>
     </div>
 
-    <!-- 班级列表表格 -->
-    <div class="card">
+    <div class="card table-card">
+        <div class="card-header">
+            <div>
+                <div class="fw-semibold">班级列表</div>
+                <div class="text-muted small">共 {{ classes|length }} 个有效班级。</div>
+            </div>
+            <div class="table-meta">
+                <span>总学生 {{ student_count }}</span>
+                <span>统计时间 {% now "Y-m-d H:i" %}</span>
+            </div>
+        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
@@ -107,15 +108,11 @@
                     </thead>
                     <tbody>
                         {% for c in classes %}
-                        <tr>
+                        <tr class="class-row" data-row-link="{% url 'student_list' %}?classno={{ c.classno }}" tabindex="0" role="link" aria-label="查看班级 {{ c.classname }} 的学生列表">
                             <td class="ps-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-primary bg-opacity-10 text-primary rounded p-2 me-3">
-                                        <i class="bi bi-diagram-3"></i>
-                                    </div>
-                                    <div>
-                                        <div class="fw-semibold">{{ c.classno }}</div>
-                                    </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="student-icon"><i class="bi bi-diagram-3"></i></div>
+                                    <div class="fw-semibold">{{ c.classno }}</div>
                                 </div>
                             </td>
                             <td>
@@ -123,10 +120,8 @@
                             </td>
                             <td>
                                 {% if c.dno %}
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-info bg-opacity-10 text-info rounded p-2 me-3">
-                                        <i class="bi bi-building"></i>
-                                    </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="dept-icon"><i class="bi bi-building"></i></div>
                                     <div>
                                         <div class="fw-medium">{{ c.dno.dname }}</div>
                                         <div class="text-muted small">{{ c.dno.dno }}</div>
@@ -137,37 +132,26 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-primary rounded-pill px-3 py-2">
-                                    <i class="bi bi-people me-1"></i>
-                                    {{ c.student_count|default:"0" }} 人
-                                </span>
+                                <span class="badge bg-primary">{{ c.student_count|default:'0' }} 人</span>
                                 {% if c.student_count > 0 %}
-                                <div class="text-muted small mt-1">
-                                    占比：{% widthratio c.student_count student_count 100 %}%
-                                </div>
+                                <div class="text-muted small mt-1">占比：{% widthratio c.student_count student_count 100 %}%</div>
                                 {% endif %}
                             </td>
                             <td class="text-center">
-                                <div class="d-flex justify-content-center gap-2">
+                                <div class="d-flex justify-content-center gap-2 flex-wrap">
                                     {% if user|has_role:'admin' %}
-                                    <a href="/classes/edit/{{ c.classno }}/"
-                                       class="btn btn-sm btn-outline-primary px-3">
-                                        <i class="bi bi-pencil-square me-1"></i>编辑
+                                    <a href="{% url 'class_edit' c.classno %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil-square"></i>编辑
                                     </a>
-                                    <form method="post"
-                                          action="/classes/delete/{{ c.classno }}/"
-                                          class="d-inline">
+                                    <form method="post" action="{% url 'class_delete' c.classno %}" class="d-inline">
                                         {% csrf_token %}
-                                        <button type="submit"
-                                                class="btn btn-sm btn-outline-danger px-3 delete-btn"
-                                                data-classname="{{ c.classname }}">
-                                            <i class="bi bi-trash me-1"></i>删除
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="确定要归档该班级吗？归档后该班级会从有效列表移除。">
+                                            <i class="bi bi-archive"></i>归档
                                         </button>
                                     </form>
                                     {% endif %}
-                                    <a href="/students/?classno={{ c.classno }}"
-                                       class="btn btn-sm btn-outline-success px-3">
-                                        <i class="bi bi-eye me-1"></i>查看学生
+                                    <a href="{% url 'student_list' %}?classno={{ c.classno }}" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-eye"></i>查看学生
                                     </a>
                                 </div>
                             </td>
@@ -175,14 +159,13 @@
                         {% empty %}
                         <tr>
                             <td colspan="5" class="text-center py-5">
-                                <div class="text-center">
-                                    <i class="bi bi-diagram-3 display-1 text-muted mb-3"></i>
-                                    <h4 class="text-muted mb-2">暂无班级数据</h4>
-                                    <p class="text-muted mb-3">还没有任何班级信息，点击上方按钮添加新班级</p>
+                                <div class="empty-state">
+                                    <i class="bi bi-diagram-3 display-1 text-muted"></i>
+                                    <h4 class="text-muted mb-0">暂无班级数据</h4>
+                                    <p class="text-muted mb-0">还没有任何班级信息。</p>
                                     {% if user|has_role:'admin' %}
-                                    <a href="/classes/add/" class="btn btn-primary">
-                                        <i class="bi bi-plus-circle me-2"></i>
-                                        创建第一个班级
+                                    <a href="{% url 'class_add' %}" class="btn btn-primary">
+                                        <i class="bi bi-plus-circle"></i>创建第一个班级
                                     </a>
                                     {% endif %}
                                 </div>
@@ -193,30 +176,12 @@
                 </table>
             </div>
         </div>
-
         {% if classes %}
-        <!-- 表格底部 -->
-        <div class="card-footer bg-transparent border-top">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="text-muted">
-                        显示 <strong>{{ classes|length }}</strong> 个班级，
-                        共 <strong>{{ student_count }}</strong> 名学生，
-                        平均每班 <strong>{% if class_count > 0 %}{{ student_count|divisibleby:class_count|default:"0" }}{% else %}0{% endif %}</strong> 人
-                    </span>
-                </div>
-                <div>
-                    <span class="text-muted">
-                        统计时间：{% now "Y-m-d H:i" %}
-                    </span>
-                </div>
-            </div>
+        <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <span class="text-muted">显示 <strong>{{ classes|length }}</strong> 个班级，共 <strong>{{ student_count }}</strong> 名学生。</span>
+            <span class="text-muted">平均每班 <strong>{% if class_count > 0 %}{% widthratio student_count class_count 1 %}{% else %}0{% endif %}</strong> 人</span>
         </div>
         {% endif %}
     </div>
 </div>
-
-{% block extra_js %}
-<script src="{% static 'js/class_manage.js' %}"></script>  <!-- 引入外部 JS -->
-{% endblock %}
 {% endblock %}

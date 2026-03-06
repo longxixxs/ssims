@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
-from .models import cl, course, depart, student
+from .models import UserAccount, cl, course, depart, student
 from .view_shared import DEFAULT_STUDENT_PASSWORD, MANAGED_ROLES
 
 
@@ -19,13 +19,24 @@ class UserCreateInputForm(forms.Form):
     password1 = forms.CharField(required=False)
     password2 = forms.CharField(required=False)
     groups = forms.ChoiceField(choices=[(name, name) for name in MANAGED_ROLES])
+    status = forms.ChoiceField(choices=UserAccount.STATUS_CHOICES, initial=UserAccount.STATUS_ACTIVE)
     create_student = forms.BooleanField(required=False)
+    teacher_classes = forms.ModelMultipleChoiceField(
+        required=False,
+        queryset=cl.objects.filter(is_active=True).order_by('classno'),
+        to_field_name='classno',
+    )
+    teacher_courses = forms.ModelMultipleChoiceField(
+        required=False,
+        queryset=course.objects.filter(is_active=True).order_by('cno'),
+        to_field_name='cno',
+    )
 
     sname = forms.CharField(required=False, max_length=10)
     sex = forms.ChoiceField(required=False, choices=student.stusex)
     classno = forms.ModelChoiceField(
         required=False,
-        queryset=cl.objects.all(),
+        queryset=cl.objects.filter(is_active=True).order_by('classno'),
         to_field_name='classno',
     )
     native = forms.CharField(required=False, max_length=20)
@@ -68,6 +79,10 @@ class UserCreateInputForm(forms.Form):
             raise forms.ValidationError('仅学生角色可以创建学生档案')
         if create_student and (not cleaned.get('sname') or not cleaned.get('classno')):
             raise forms.ValidationError('创建学生档案时，姓名和班级不能为空')
+        if selected_role == 'teacher' and not (
+            cleaned.get('teacher_classes') or cleaned.get('teacher_courses')
+        ):
+            raise forms.ValidationError('教师角色至少需要分配一个班级或课程')
         return cleaned
 
 
@@ -76,13 +91,24 @@ class UserEditInputForm(forms.Form):
     password1 = forms.CharField(required=False)
     password2 = forms.CharField(required=False)
     groups = forms.ChoiceField(choices=[(name, name) for name in MANAGED_ROLES])
+    status = forms.ChoiceField(choices=UserAccount.STATUS_CHOICES, initial=UserAccount.STATUS_ACTIVE)
     create_student = forms.BooleanField(required=False)
+    teacher_classes = forms.ModelMultipleChoiceField(
+        required=False,
+        queryset=cl.objects.filter(is_active=True).order_by('classno'),
+        to_field_name='classno',
+    )
+    teacher_courses = forms.ModelMultipleChoiceField(
+        required=False,
+        queryset=course.objects.filter(is_active=True).order_by('cno'),
+        to_field_name='cno',
+    )
 
     sname = forms.CharField(required=False, max_length=10)
     sex = forms.ChoiceField(required=False, choices=student.stusex)
     classno = forms.ModelChoiceField(
         required=False,
-        queryset=cl.objects.all(),
+        queryset=cl.objects.filter(is_active=True).order_by('classno'),
         to_field_name='classno',
     )
     native = forms.CharField(required=False, max_length=20)
@@ -122,6 +148,10 @@ class UserEditInputForm(forms.Form):
             raise forms.ValidationError('仅学生角色可以创建学生档案')
         if create_student and (not cleaned.get('sname') or not cleaned.get('classno')):
             raise forms.ValidationError('创建学生档案时，姓名和班级不能为空')
+        if selected_role == 'teacher' and not (
+            cleaned.get('teacher_classes') or cleaned.get('teacher_courses')
+        ):
+            raise forms.ValidationError('教师角色至少需要分配一个班级或课程')
         return cleaned
 
 
@@ -132,7 +162,7 @@ class StudentAddForm(forms.Form):
     native = forms.CharField(required=False, max_length=20)
     age = forms.IntegerField(required=False, min_value=10, max_value=100)
     classno = forms.ModelChoiceField(
-        queryset=cl.objects.all(),
+        queryset=cl.objects.filter(is_active=True).order_by('classno'),
         to_field_name='classno',
     )
     semester = forms.IntegerField(required=False, min_value=1, max_value=12)
@@ -146,7 +176,7 @@ class StudentEditForm(forms.Form):
     native = forms.CharField(required=False, max_length=20)
     age = forms.IntegerField(required=False, min_value=10, max_value=100)
     classno = forms.ModelChoiceField(
-        queryset=cl.objects.all(),
+        queryset=cl.objects.filter(is_active=True).order_by('classno'),
         to_field_name='classno',
     )
     semester = forms.IntegerField(required=False, min_value=1, max_value=12)
@@ -157,12 +187,12 @@ class StudentEditForm(forms.Form):
 class ClassAddForm(forms.Form):
     classno = forms.CharField(max_length=6)
     classname = forms.CharField(max_length=10)
-    dno = forms.ModelChoiceField(queryset=depart.objects.all(), to_field_name='dno')
+    dno = forms.ModelChoiceField(queryset=depart.objects.filter(is_active=True).order_by('dno'), to_field_name='dno')
 
 
 class ClassEditForm(forms.Form):
     classname = forms.CharField(max_length=10)
-    dno = forms.ModelChoiceField(queryset=depart.objects.all(), to_field_name='dno')
+    dno = forms.ModelChoiceField(queryset=depart.objects.filter(is_active=True).order_by('dno'), to_field_name='dno')
 
 
 class DepartAddForm(forms.Form):
@@ -194,7 +224,7 @@ class CourseEditForm(forms.Form):
 
 
 class SelectCourseForm(forms.Form):
-    cno = forms.ModelChoiceField(queryset=course.objects.all(), to_field_name='cno')
+    cno = forms.ModelChoiceField(queryset=course.objects.filter(is_active=True).order_by('cno'), to_field_name='cno')
 
 
 class UpdateGradeForm(forms.Form):

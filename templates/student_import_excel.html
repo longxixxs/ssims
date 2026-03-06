@@ -1,39 +1,341 @@
-{% extends 'base.html' %}
-{% load roles %}
+﻿{% extends 'base.html' %}
+
 {% block title %}Excel 导入学生{% endblock %}
 
 {% block content %}
-{% if not user|has_role:'admin' %}
-<div class="container-fluid">
-    <div class="alert alert-warning">无权限访问</div>
-</div>
-{% else %}
-<div class="container mt-4">
-    <div class="card">
-        <div class="card-header">
-            <h5>Excel 批量导入学生</h5>
+<div class="container-fluid workspace-page">
+    <div class="page-header">
+        <div class="page-header-main">
+            <div class="icon-container"><i class="bi bi-file-earmark-spreadsheet-fill"></i></div>
+            <div class="page-header-copy">
+                <div class="page-kicker"><i class="bi bi-upload"></i>Excel Import</div>
+                <h2>Excel 导入学生</h2>
+                <p class="text-muted">先执行预检，再确认导入。支持新增模式和更新模式，保持导入过程可回看。</p>
+                <div class="badge-stack">
+                    <span class="badge badge-soft-primary"><i class="bi bi-table"></i>固定表头 9 列</span>
+                    {% if job %}
+                    <span class="badge bg-info-subtle border"><i class="bi bi-hash"></i>任务 #{{ job.id }}</span>
+                    <span class="badge bg-success-subtle border"><i class="bi bi-clipboard-data"></i>{{ job.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
+        <div class="page-header-actions">
+            <a href="{% url 'student_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i>返回学生列表</a>
+        </div>
+    </div>
 
-                <div class="mb-3">
-                    <label class="form-label">选择 Excel 文件（.xlsx）</label>
-                    <input type="file" name="file" class="form-control" required>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon"><i class="bi bi-filetype-xlsx"></i></div>
+                        <div>
+                            <div class="text-muted small">导入格式</div>
+                            <div class="h3 mb-0">.xlsx</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon"><i class="bi bi-list-ol"></i></div>
+                        <div>
+                            <div class="text-muted small">可执行行数</div>
+                            <div class="h3 mb-0">{{ job.summary.preview_count|default:0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+                        <div>
+                            <div class="text-muted small">错误行数</div>
+                            <div class="h3 mb-0">{{ job.summary.error_count|default:0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 align-items-start">
+        <div class="col-xl-8">
+            <div class="card filter-card">
+                <div class="card-header">
+                    <div>
+                        <div class="fw-semibold">上传并预检</div>
+                        <div class="text-muted small">系统会先校验表头、数据格式和导入模式，再生成预检任务。</div>
+                    </div>
+                    <span class="badge bg-primary-subtle border">Step 1</span>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data" class="row g-3 align-items-end">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="preview">
+                        <div class="col-md-3">
+                            <label class="form-label">导入模式</label>
+                            <select name="mode" class="form-select">
+                                <option value="create" {% if not job or job.mode == 'create' %}selected{% endif %}>新增模式</option>
+                                <option value="update" {% if job and job.mode == 'update' %}selected{% endif %}>更新模式</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Excel 文件</label>
+                            <input type="file" name="file" class="form-control" required>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i>开始预检</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if job %}
+            <div class="card preview-card">
+                <div class="card-header">
+                    <div>
+                        <div class="fw-semibold">导入任务</div>
+                        <div class="text-muted small">查看任务状态、预检统计和确认执行入口。</div>
+                    </div>
+                    <span class="badge bg-info-subtle border">Task #{{ job.id }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="detail-grid">
+                        <div class="preview-item">
+                            <div class="text-muted small mb-1">任务状态</div>
+                            <div class="fw-semibold">{{ job.get_status_display }}</div>
+                        </div>
+                        <div class="preview-item">
+                            <div class="text-muted small mb-1">导入模式</div>
+                            <div class="fw-semibold">{{ job.get_mode_display }}</div>
+                        </div>
+                        {% if job.status == 'previewed' %}
+                        <div class="preview-item">
+                            <div class="text-muted small mb-1">可执行</div>
+                            <div class="fw-semibold">{{ job.summary.preview_count|default:0 }}</div>
+                        </div>
+                        <div class="preview-item">
+                            <div class="text-muted small mb-1">错误</div>
+                            <div class="fw-semibold">{{ job.summary.error_count|default:0 }}</div>
+                        </div>
+                        {% else %}
+                        <div class="preview-item">
+                            <div class="text-muted small mb-1">新增</div>
+                            <div class="fw-semibold">{{ job.summary.created|default:0 }}</div>
+                        </div>
+                        <div class="preview-item">
+                            <div class="text-muted small mb-1">更新</div>
+                            <div class="fw-semibold">{{ job.summary.updated|default:0 }}</div>
+                        </div>
+                        <div class="preview-item">
+                            <div class="text-muted small mb-1">恢复</div>
+                            <div class="fw-semibold">{{ job.summary.restored|default:0 }}</div>
+                        </div>
+                        <div class="preview-item">
+                            <div class="text-muted small mb-1">新建账号</div>
+                            <div class="fw-semibold">{{ job.summary.created_accounts|default:0 }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if job.status == 'previewed' and job.preview_rows %}
+                    <div class="d-flex justify-content-end pt-4 mt-4 border-top">
+                        <form method="post" class="m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="apply">
+                            <input type="hidden" name="job_id" value="{{ job.id }}">
+                            <button type="submit" class="btn btn-success"><i class="bi bi-check2-circle"></i>确认导入</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card table-card">
+                <div class="card-header">
+                    <div>
+                        <div class="fw-semibold">预检结果</div>
+                        <div class="text-muted small">显示可执行的数据行和即将执行的操作类型。</div>
+                    </div>
+                    <div class="table-meta">
+                        <span>可执行 {{ job.preview_rows|length }} 行</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">行号</th>
+                                    <th>操作</th>
+                                    <th>学号</th>
+                                    <th>姓名</th>
+                                    <th>班级</th>
+                                    <th class="pe-4">学期</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in job.preview_rows %}
+                                <tr class="record-row">
+                                    <td class="ps-4">{{ row.row_number }}</td>
+                                    <td><span class="badge bg-primary-subtle border">{{ row.operation }}</span></td>
+                                    <td class="fw-semibold">{{ row.sno }}</td>
+                                    <td>{{ row.sname }}</td>
+                                    <td>{{ row.classno }}</td>
+                                    <td class="pe-4">{{ row.semester|default:'-' }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="py-5">
+                                        <div class="empty-state">
+                                            <i class="bi bi-table display-1 text-muted"></i>
+                                            <h5 class="text-muted mb-0">没有可执行的数据行</h5>
+                                            <p class="text-muted mb-0">当前任务没有通过预检的数据。</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card table-card">
+                <div class="card-header">
+                    <div>
+                        <div class="fw-semibold">错误明细</div>
+                        <div class="text-muted small">保留行号和错误信息，便于直接回到 Excel 修正。</div>
+                    </div>
+                    <div class="table-meta">
+                        <span>错误 {{ job.error_rows|length }} 行</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">行号</th>
+                                    <th>学号</th>
+                                    <th class="pe-4">错误</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in job.error_rows %}
+                                <tr class="record-row">
+                                    <td class="ps-4">{{ row.row_number }}</td>
+                                    <td>{{ row.sno|default:'-' }}</td>
+                                    <td class="pe-4">{{ row.error }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="py-5">
+                                        <div class="empty-state">
+                                            <i class="bi bi-check2-circle display-1 text-muted"></i>
+                                            <h5 class="text-muted mb-0">没有错误</h5>
+                                            <p class="text-muted mb-0">当前任务的错误列表为空。</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-xl-4">
+            <div class="side-stack">
+                <div class="card preview-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="fw-semibold">导入要求</div>
+                            <div class="text-muted small">文件结构必须符合固定列定义。</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="preview-item">
+                            <div class="text-muted small mb-2">标准表头</div>
+                            <div class="fw-semibold text-break">sno, sname, sex, native, age, classno, semester, home, telephone</div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="alert alert-info">
-                    表头必须为：<br>
-                    sno | sname | sex | native | age | classno | semester | home | telephone
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="fw-semibold">操作流程</div>
+                            <div class="text-muted small">建议按固定步骤执行，避免重复导入。</div>
+                        </div>
+                    </div>
+                    <div class="card-body d-grid gap-3">
+                        <div class="hint-item">
+                            <div class="hint-icon-sm text-primary"><i class="bi bi-1-circle"></i></div>
+                            <div>
+                                <div class="hint-title">先预检</div>
+                                <div class="hint-text">先生成任务，确认哪些行能导入、哪些行需要修正。</div>
+                            </div>
+                        </div>
+                        <div class="hint-item">
+                            <div class="hint-icon-sm text-success"><i class="bi bi-2-circle"></i></div>
+                            <div>
+                                <div class="hint-title">再确认执行</div>
+                                <div class="hint-text">只有预检通过的行才会在确认后真正落库。</div>
+                            </div>
+                        </div>
+                        <div class="hint-item">
+                            <div class="hint-icon-sm text-warning"><i class="bi bi-3-circle"></i></div>
+                            <div>
+                                <div class="hint-title">优先修错误行</div>
+                                <div class="hint-text">错误明细会保留原始行号，建议在源 Excel 中直接修复后再导入。</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="d-flex justify-content-between">
-                    <a href="{% url 'student_list' %}" class="btn btn-secondary">返回</a>
-                    <button type="submit" class="btn btn-primary">开始导入</button>
+                {% if job and job.status == 'applied' %}
+                <div class="card preview-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="fw-semibold">执行结果</div>
+                            <div class="text-muted small">导入完成后的结果统计。</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-3">
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">新增学生</div>
+                                <div class="fw-semibold">{{ job.summary.created|default:0 }}</div>
+                            </div>
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">更新学生</div>
+                                <div class="fw-semibold">{{ job.summary.updated|default:0 }}</div>
+                            </div>
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">恢复学生</div>
+                                <div class="fw-semibold">{{ job.summary.restored|default:0 }}</div>
+                            </div>
+                            <div class="preview-item">
+                                <div class="text-muted small mb-1">新建账号</div>
+                                <div class="fw-semibold">{{ job.summary.created_accounts|default:0 }}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </form>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
-{% endif %}
 {% endblock %}

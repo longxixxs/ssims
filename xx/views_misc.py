@@ -11,12 +11,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Avg, Count, Max, Min, Q, Sum
 from django.db.models.query import QuerySet
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
+from django.template.loader import render_to_string
 from django.views import View
 from django.views.generic import ListView
 
 from .models import AuditLog, cl, course, depart, sc, student
-from .permissions import RoleRequiredMixin, is_student
+from .permissions import RoleRequiredMixin, is_student, is_teacher, teacher_class_ids, teacher_course_ids
 
 
 class DashboardView(LoginRequiredMixin, RoleRequiredMixin, View):
@@ -25,11 +27,15 @@ class DashboardView(LoginRequiredMixin, RoleRequiredMixin, View):
 
     def get(self, request):
         if is_student(request.user):
-            stu = student.objects.filter(user=request.user).select_related('classno').first()
+            stu = student.objects.filter(user=request.user, is_active=True).select_related('classno').first()
             if stu is None:
-                stu = student.objects.filter(sno=request.user.username).select_related('classno').first()
+                stu = student.objects.filter(sno=request.user.username, is_active=True).select_related('classno').first()
             records = sc.objects.select_related('cno').filter(sno=stu).order_by('-id') if stu else sc.objects.none()
-            graded_records = records.filter(grade__isnull=False)
+            graded_records = records.filter(
+                selection_status=sc.SELECTION_ACTIVE,
+                grade_status=sc.GRADE_PUBLISHED,
+                grade__isnull=False,
+            )
 
             total_credit = graded_records.aggregate(total=Sum('cno__credit'))['total'] or 0
             passed_credit = graded_records.filter(grade__gte=60).aggregate(total=Sum('cno__credit'))['total'] or 0
@@ -38,26 +44,49 @@ class DashboardView(LoginRequiredMixin, RoleRequiredMixin, View):
             return render(request, self.template_name, {
                 'stu': stu,
                 'recent_sc': records[:10],
-                'course_count': records.count(),
+                'course_count': records.filter(selection_status=sc.SELECTION_ACTIVE).count(),
                 'graded_count': graded_records.count(),
-                'avg_grade': round(avg_grade, 1) if avg_grade else None,
+                'avg_grade': round(avg_grade, 1) if avg_grade is not None else None,
                 'total_credit': round(total_credit, 1),
                 'passed_credit': round(passed_credit, 1),
             })
 
-        depart_stat = student.objects.values('classno__dno__dname').annotate(total=Count('sno')).order_by('-total')
-        depart_course_stat = sc.objects.values('sno__classno__dno__dname').annotate(
-            total=Count('sno', distinct=True)
-        ).order_by('-total')
-        avg_grade = sc.objects.filter(grade__isnull=False).aggregate(avg=Avg('grade'))['avg']
-        recent_sc = sc.objects.select_related('sno', 'cno').order_by('-id')[:10]
+        if is_teacher(request.user):
+            class_ids = teacher_class_ids(request.user)
+            course_ids = teacher_course_ids(request.user)
+            student_qs = student.objects.filter(is_active=True, classno_id__in=class_ids)
+            course_qs = course.objects.filter(is_active=True, cno__in=course_ids)
+            sc_qs = sc.objects.select_related('sno', 'cno').filter(
+                sno__classno_id__in=class_ids,
+                cno_id__in=course_ids,
+            )
+        else:
+            student_qs = student.objects.filter(is_active=True)
+            course_qs = course.objects.filter(is_active=True)
+            sc_qs = sc.objects.select_related('sno', 'cno')
+
+        depart_stat = student_qs.values('classno__dno__dname').annotate(total=Count('sno')).order_by('-total')
+        depart_course_stat = sc_qs.filter(selection_status=sc.SELECTION_ACTIVE).values(
+            'sno__classno__dno__dname'
+        ).annotate(total=Count('sno', distinct=True)).order_by('-total')
+        avg_grade = sc_qs.filter(
+            selection_status=sc.SELECTION_ACTIVE,
+            grade_status=sc.GRADE_PUBLISHED,
+            grade__isnull=False,
+        ).aggregate(avg=Avg('grade'))['avg']
+        recent_sc = sc_qs.order_by('-id')[:10]
+        class_total = cl.objects.filter(is_active=True)
+        depart_total = depart.objects.filter(is_active=True)
+        if is_teacher(request.user):
+            class_total = class_total.filter(classno__in=class_ids)
+            depart_total = depart_total.filter(cl__classno__in=class_ids).distinct()
 
         return render(request, self.template_name, {
-            'student_total': student.objects.count(),
-            'course_total': course.objects.count(),
-            'class_total': cl.objects.count(),
-            'depart_total': depart.objects.count(),
-            'avg_grade': round(avg_grade, 1) if avg_grade else None,
+            'student_total': student_qs.count(),
+            'course_total': course_qs.count(),
+            'class_total': class_total.count(),
+            'depart_total': depart_total.count(),
+            'avg_grade': round(avg_grade, 1) if avg_grade is not None else None,
             'depart_stat': depart_stat,
             'depart_course_stat': depart_course_stat,
             'recent_sc': recent_sc,
@@ -399,6 +428,44 @@ def make_json_safe(obj):
     return obj
 
 
+CHAT_SYSTEM_MESSAGE = {
+    "role": "system",
+    "content": """你是一个Django ORM代码生成助手。根据用户需求生成可直接执行的Python代码。
+代码应该简洁、安全，并且将结果赋值给变量`result`。
+可用的模型：student, cl, depart, course, sc。
+使用Django ORM进行查询，不要使用原始SQL。""",
+}
+CHAT_GREETING_MESSAGE = {
+    "role": "assistant",
+    "content": "你好我是你的AI助手，我可以帮助你完成查询工作！",
+}
+
+
+def build_chat_session(include_greeting=False):
+    messages_list = [dict(CHAT_SYSTEM_MESSAGE)]
+    if include_greeting:
+        messages_list.append(dict(CHAT_GREETING_MESSAGE))
+    return messages_list
+
+
+def ensure_chat_session(request):
+    if "chat_messages" not in request.session:
+        request.session["chat_messages"] = build_chat_session()
+    return request.session["chat_messages"]
+
+
+def visible_chat_messages(request):
+    return [item for item in ensure_chat_session(request) if item.get("role") != "system"]
+
+
+def render_chat_messages(request):
+    return render_to_string("partials/chat_messages.html", {"messages": visible_chat_messages(request)}, request=request)
+
+
+def is_ajax_request(request):
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
 @login_required
 def chat_view(request):
     if is_student(request.user):
@@ -408,37 +475,21 @@ def chat_view(request):
         messages.error(request, '无权限访问')
         return redirect('dashboard')
 
-    if request.GET.get("clear") == "1":
-        request.session["chat_messages"] = [
-            {
-                "role": "system",
-                "content": """你是一个Django ORM代码生成助手。根据用户需求生成可直接执行的Python代码。
-    代码应该简洁、安全，并且将结果赋值给变量`result`。
-    可用的模型：student, cl, depart, course, sc。
-    使用Django ORM进行查询，不要使用原始SQL。"""
-            },
-            {
-                "role": "assistant",
-                "content": "你好我是你的AI助手，我可以帮助你完成查询工作！"
-            }
-        ]
-        request.session.modified = True
-        return redirect('chat')
-
-    if "chat_messages" not in request.session:
-        request.session["chat_messages"] = [{
-            "role": "system",
-            "content": """你是一个Django ORM代码生成助手。根据用户需求生成可直接执行的Python代码。
-代码应该简洁、安全，并且将结果赋值给变量`result`。
-可用的模型：student, cl, depart, course, sc。
-使用Django ORM进行查询，不要使用原始SQL。"""
-        }]
+    ensure_chat_session(request)
 
     executor = AICodeExecutor()
     if request.method == "POST":
+        if request.POST.get("action") == "clear":
+            request.session["chat_messages"] = build_chat_session(include_greeting=True)
+            request.session.modified = True
+            messages.success(request, '对话已清空')
+            return redirect('chat')
+
         user_input = request.POST.get("message", "").strip()
         if not user_input:
-            return render(request, "chat.html", {"messages": request.session["chat_messages"]})
+            if is_ajax_request(request):
+                return JsonResponse({"error": "请输入内容"}, status=400)
+            return render(request, "chat.html", {"messages": visible_chat_messages(request)})
         request.session["chat_messages"].append({"role": "user", "content": user_input})
         try:
             prompt = CODE_GENERATION_PROMPT.format(user_query=user_input)
@@ -461,5 +512,9 @@ def chat_view(request):
             reply = f"处理失败:\n{str(exc)}\n\nAI回复:\n{ai_response if 'ai_response' in locals() else '无'}"
         request.session["chat_messages"].append({"role": "assistant", "content": reply})
         request.session.modified = True
-    return render(request, "chat.html", {"messages": request.session["chat_messages"]})
-
+        if is_ajax_request(request):
+            return JsonResponse({
+                "messages_html": render_chat_messages(request),
+                "message_count": len(visible_chat_messages(request)),
+            })
+    return render(request, "chat.html", {"messages": visible_chat_messages(request)})
