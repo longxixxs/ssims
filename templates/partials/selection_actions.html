@@ -1,0 +1,41 @@
+{% load roles %}
+{% with action_course_code=course_code|default:record.cno.cno %}
+<div class="action-cluster justify-content-center">
+    {% if user|has_role:'admin' or user|has_role:'teacher' %}
+        {% if record.selection_status == 'active' and record.grade_status != 'published' %}
+        <a href="{% url 'update_grade' record.sno.sno action_course_code %}" class="btn btn-sm btn-outline-primary">
+            {% if edit_label %}
+                {{ edit_label }}
+            {% elif record.grade is not None %}
+                修改成绩
+            {% else %}
+                录入成绩
+            {% endif %}
+        </a>
+        {% endif %}
+
+        {% if show_publish_action and record.selection_status == 'active' and record.grade is not None and record.grade_status != 'published' %}
+        <form method="post" action="{% url 'publish_grade' record.sno.sno action_course_code %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-success">发布</button>
+        </form>
+        {% endif %}
+
+        {% if record.selection_status == 'active' and record.grade_status == 'published' %}
+        <form method="post" action="{% url 'mark_retake' record.sno.sno action_course_code %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-warning">
+                {% if retake_label %}{{ retake_label }}{% else %}发起重修{% endif %}
+            </button>
+        </form>
+        {% endif %}
+    {% endif %}
+
+    {% if show_drop_action and record.selection_status == 'active' and record.grade_status != 'published' %}
+    <form method="post" action="{% url 'drop_course' record.sno.sno action_course_code %}" class="m-0">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-danger">退课</button>
+    </form>
+    {% endif %}
+</div>
+{% endwith %}

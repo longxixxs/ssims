@@ -1,0 +1,219 @@
+﻿.workspace-page {
+    display: grid;
+    gap: 24px;
+}
+
+.page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 8px 0 0;
+}
+
+.page-shell > .d-flex:first-child,
+.page-shell > .row > [class*='col-'] > .d-flex:first-child {
+    padding: 8px 0 0;
+}
+
+.page-header-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    min-width: 0;
+}
+
+.page-header-copy {
+    display: grid;
+    gap: 6px;
+}
+
+.page-header-copy > * {
+    margin: 0;
+}
+
+.page-header h1,
+.page-header h2,
+.page-header .h3 {
+    margin-bottom: 6px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--ink-950);
+}
+
+.page-header p,
+.page-header .text-muted {
+    color: var(--ink-700) !important;
+}
+
+.page-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.page-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(15, 118, 110, 0.10);
+    color: var(--brand-strong);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.page-summary,
+.page-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: var(--ink-700);
+    font-size: 0.92rem;
+}
+
+.stat-card,
+.filter-card,
+.table-card,
+.preview-card {
+    overflow: hidden;
+}
+
+.stat-card {
+    border-color: rgba(15, 118, 110, 0.08);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 248, 251, 0.88));
+}
+
+.stat-card .card-body {
+    display: grid;
+    gap: 14px;
+}
+
+.table-card .card-header,
+.filter-card .card-header,
+.preview-card .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.table-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    color: var(--ink-700);
+    font-size: 0.92rem;
+}
+
+.table-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.detail-grid,
+.metrics-grid,
+.summary-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.detail-grid {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.table tbody tr.student-row,
+.table tbody tr.course-row,
+.table tbody tr.class-row,
+.table tbody tr.depart-row,
+.table tbody tr.record-row,
+.table tbody tr.stat-row,
+.table tbody tr[data-row-link] {
+    transition: background-color var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.table tbody tr.student-row:hover,
+.table tbody tr.course-row:hover,
+.table tbody tr.class-row:hover,
+.table tbody tr.depart-row:hover,
+.table tbody tr.record-row:hover,
+.table tbody tr.stat-row:hover,
+.table tbody tr[data-row-link]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px rgba(22, 34, 53, 0.06);
+}
+
+.table tbody tr[data-row-link] {
+    cursor: pointer;
+}
+
+.table tbody tr[data-row-link]:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.34);
+    outline-offset: -3px;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.24);
+}
+
+.form-split,
+.side-stack {
+    display: grid;
+    gap: 20px;
+}
+
+.badge-stack {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.scope-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(22, 34, 53, 0.08);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.scope-switch .btn {
+    min-height: 36px;
+    padding: 8px 14px;
+}
+
+.scope-switch .btn.active {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--brand), #155e75);
+    box-shadow: 0 12px 24px rgba(15, 118, 110, 0.18);
+}
+
+@media (max-width: 767px) {
+    .page-header {
+        gap: 12px;
+    }
+
+    .page-header-main {
+        width: 100%;
+    }
+
+    .page-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+}

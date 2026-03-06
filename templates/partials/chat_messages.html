@@ -1,0 +1,9 @@
+{% for message in messages %}
+    {% include 'partials/chat_message.html' with message=message %}
+{% empty %}
+<div class="chat-empty-state text-center py-5" id="emptyState">
+    <i class="bi bi-chat-dots text-muted chat-empty-icon"></i>
+    <h5 class="text-muted mt-3">开始对话</h5>
+    <p class="text-muted mb-0">输入指令开始与 AI 助手交互。</p>
+</div>
+{% endfor %}

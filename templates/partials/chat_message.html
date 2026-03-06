@@ -1,0 +1,27 @@
+{% if message.role != 'system' %}
+<div class="message mb-4 {% if message.role == 'user' %}text-end{% endif %}">
+    <div class="d-flex align-items-start {% if message.role == 'user' %}flex-row-reverse{% endif %}">
+        <div class="avatar flex-shrink-0">
+            <div class="rounded-circle d-flex align-items-center justify-content-center chat-avatar {% if message.role == 'user' %}bg-primary{% else %}bg-success{% endif %}">
+                <i class="bi {% if message.role == 'user' %}bi-person-fill{% else %}bi-robot{% endif %} text-white"></i>
+            </div>
+        </div>
+        <div class="message-content mx-3 chat-bubble-wrap">
+            <div class="d-flex align-items-center mb-1 {% if message.role == 'user' %}justify-content-end{% endif %}">
+                <span class="badge {% if message.role == 'user' %}bg-primary{% else %}bg-success{% endif %} rounded-pill px-3 py-1">
+                    {% if message.role == 'user' %}用户{% else %}AI助手{% endif %}
+                </span>
+            </div>
+            <div class="card border-0 rounded-3 {% if message.role == 'user' %}bg-primary text-white{% else %}bg-light{% endif %}">
+                <div class="card-body p-3">
+                    {% if message.role == 'assistant' %}
+                    <div class="ai-result-container">{{ message.content|linebreaks }}</div>
+                    {% else %}
+                    <p class="mb-0 {% if message.role == 'user' %}text-white{% endif %}">{{ message.content }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}

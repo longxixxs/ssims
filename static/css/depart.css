@@ -1,0 +1,334 @@
+﻿.depart-page {
+    gap: 28px;
+}
+
+.depart-hero {
+    border: 1px solid rgba(22, 34, 53, 0.08);
+    background:
+        radial-gradient(circle at top right, rgba(15, 118, 110, 0.12), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.08), transparent 24%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.78));
+    box-shadow: var(--shadow-sm);
+}
+
+.depart-hero .card-body {
+    padding: 28px 30px;
+}
+
+.depart-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 24px;
+    align-items: center;
+}
+
+.depart-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(15, 118, 110, 0.12);
+    color: var(--brand-strong);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.depart-hero-actions,
+.depart-hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.depart-hero-actions {
+    justify-content: flex-end;
+}
+
+.depart-stat {
+    overflow: hidden;
+    border: 1px solid rgba(22, 34, 53, 0.08);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 248, 251, 0.86));
+    box-shadow: var(--shadow-sm);
+}
+
+.depart-stat .card-body {
+    display: grid;
+    gap: 16px;
+}
+
+.depart-stat-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.depart-stat-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-700);
+}
+
+.depart-stat-value {
+    font-size: clamp(1.8rem, 3vw, 2.35rem);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--ink-950);
+}
+
+.depart-stat-note {
+    color: var(--ink-700);
+    font-size: 0.92rem;
+}
+
+.depart-table-card {
+    overflow: hidden;
+}
+
+.depart-table-card .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.depart-table-summary {
+    display: grid;
+    gap: 4px;
+}
+
+.depart-table-summary strong {
+    font-size: 1rem;
+}
+
+.depart-table {
+    min-width: 760px;
+}
+
+.depart-table tbody tr {
+    transition: transform var(--transition), background-color var(--transition);
+}
+
+.depart-table tbody tr:hover {
+    transform: translateY(-2px);
+}
+
+.depart-record {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.depart-record-body {
+    display: grid;
+    gap: 6px;
+}
+
+.depart-record-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--ink-950);
+}
+
+.depart-record-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: var(--ink-700);
+    font-size: 0.88rem;
+}
+
+.depart-code {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(15, 118, 110, 0.12);
+    color: var(--brand-strong);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.depart-contact {
+    display: grid;
+    gap: 4px;
+}
+
+.depart-contact-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-500);
+}
+
+.depart-contact-value {
+    font-weight: 700;
+    color: var(--ink-950);
+}
+
+.depart-overview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.depart-action-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.depart-footer-note {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.depart-form-layout {
+    align-items: start;
+}
+
+.depart-form-card,
+.depart-sidebar-card {
+    overflow: hidden;
+}
+
+.depart-form-card .card-header,
+.depart-sidebar-card .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.depart-form-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.depart-field-block {
+    display: grid;
+    gap: 8px;
+}
+
+.depart-field-note {
+    font-size: 0.9rem;
+    color: var(--ink-700);
+}
+
+.depart-inline-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--info);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.depart-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.depart-side-stack {
+    display: grid;
+    gap: 16px;
+    position: sticky;
+    top: 104px;
+}
+
+.depart-preview-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.depart-preview-grid .preview-item:last-child {
+    grid-column: 1 / -1;
+}
+
+.depart-preview-grid .preview-item {
+    min-height: 108px;
+}
+
+.depart-help-list {
+    display: grid;
+    gap: 12px;
+}
+
+.depart-help-list .hint-item {
+    background: rgba(255, 255, 255, 0.68);
+}
+
+.depart-help-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--ink-950);
+}
+
+.depart-help-copy {
+    color: var(--ink-700);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 991px) {
+    .depart-hero .card-body {
+        padding: 24px;
+    }
+
+    .depart-hero-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .depart-hero-actions {
+        justify-content: flex-start;
+    }
+
+    .depart-side-stack {
+        position: static;
+    }
+}
+
+@media (max-width: 767px) {
+    .depart-page {
+        gap: 22px;
+    }
+
+    .depart-preview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .depart-preview-grid .preview-item:last-child {
+        grid-column: auto;
+    }
+
+    .depart-form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .depart-form-actions .btn {
+        width: 100%;
+    }
+}

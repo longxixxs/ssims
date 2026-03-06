@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}待审核账号{% endblock %}
+
+{% block content %}
+<div class="container-fluid workspace-page">
+    <div class="page-header">
+        <div class="page-header-main">
+            <div class="icon-container"><i class="bi bi-hourglass-split"></i></div>
+            <div class="page-header-copy">
+                <div class="page-kicker"><i class="bi bi-person-gear"></i>Approval Queue</div>
+                <h2>待审核账号</h2>
+                <p class="text-muted">注册后未激活的账号会进入这里，审批时请补齐角色和状态。</p>
+                <div class="badge-stack">
+                    <span class="badge bg-warning-subtle border text-warning"><i class="bi bi-clock"></i>待审核 {{ users|length }} 个</span>
+                </div>
+            </div>
+        </div>
+        <div class="page-header-actions">
+            <a href="{% url 'user_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i>返回用户管理</a>
+        </div>
+    </div>
+
+    <div class="card table-card">
+        <div class="card-header">
+            <div>
+                <div class="fw-semibold">审批列表</div>
+                <div class="text-muted small">请为每个待审核账号配置角色和账号状态。</div>
+            </div>
+            <div class="table-meta">
+                <span>当前 {{ users|length }} 条</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">用户名</th>
+                            <th>昵称</th>
+                            <th>当前角色</th>
+                            <th>状态</th>
+                            <th class="text-center pe-4">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user_obj in users %}
+                        <tr class="record-row">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="student-icon-small"><i class="bi bi-person-circle"></i></div>
+                                    <div class="fw-semibold">{{ user_obj.username }}</div>
+                                </div>
+                            </td>
+                            <td>{{ user_obj.first_name|default:"-" }}</td>
+                            <td>
+                                {% for g in user_obj.groups.all %}
+                                <span class="badge bg-primary-subtle text-primary border">{{ g.name }}</span>
+                                {% empty %}
+                                <span class="text-muted">未分配</span>
+                                {% endfor %}
+                            </td>
+                            <td><span class="badge bg-warning-subtle border text-warning"><i class="bi bi-hourglass-split"></i>待审核</span></td>
+                            <td class="text-center pe-4">
+                                <a href="{% url 'user_edit' user_obj.id %}" class="btn btn-sm btn-primary"><i class="bi bi-check2-square"></i>去审批</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="py-5">
+                                <div class="empty-state">
+                                    <i class="bi bi-check2-all display-1 text-muted"></i>
+                                    <h5 class="text-muted mb-0">当前没有待审核账号</h5>
+                                    <p class="text-muted mb-0">审批队列已经清空，可以返回用户管理继续查看。</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
